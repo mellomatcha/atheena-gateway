@@ -59,6 +59,8 @@ def configure_logging(level: int = logging.INFO) -> None:
         uv_logger.handlers.clear()
         uv_logger.propagate = True
     logging.getLogger("uvicorn.access").disabled = True
+    # httpx logs every request line including the upstream URL; keep only its warnings.
+    logging.getLogger("httpx").setLevel(logging.WARNING)
 
 
 access_logger = logging.getLogger("atheena.access")
