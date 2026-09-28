@@ -46,3 +46,15 @@ UI, Cloudflare Access, manajemen key dari dashboard, agregasi harian, leaderboar
 
 ## Selesai jika
 Semua test lulus, verifikasi manual 1-4 terdokumentasi (perintah + output ringkas) di `docs/progress.md`, dan checklist PRD §14 Tahap 1 terpenuhi. Uji timeout Cloudflare dilakukan dengan fake upstream; uji lewat Cloudflare sungguhan menyusul setelah tunnel ada.
+
+## Rencana implementasi (ditulis agent, mode otonom)
+- **File baru**: `backend/app/gateway/` (`keys.py`, `errors.py`, `usage.py`, `limits.py`, `billing.py`, `relay.py`, `routes.py`, `settings_store.py`), `backend/app/cli.py`, `backend/tests/fake_upstream/` (app + server uvicorn di thread), `backend/tests/gateway_support.py`, `backend/tests/test_gateway_*.py`.
+- **File diubah**: `app/config.py` (timeout dan heartbeat), `app/main.py` (router + client upstream), `app/seed.py` (default settings dipindah), `Makefile` (`create-key`).
+- **Urutan**: modul inti → fake upstream → test billing/konkurensi → test pemeriksaan (401/402/403/413/429) → test streaming (heartbeat, error, disconnect, kebocoran ID, log) → verifikasi manual ke CT 110.
+- **Keputusan desain**:
+  - Pemeriksaan 413 dijalankan tepat setelah 401, karena nama model ada di dalam body.
+  - Response class ASGI sendiri, supaya heartbeat, error inline, dan pencatatan saat klien memutus tetap berjalan.
+  - Pesan error upstream tidak pernah diteruskan (bisa memuat ID upstream, nama provider, atau isi prompt); diganti pesan tetap dari portal.
+  - Field `model` di setiap response dan event SSE ditulis ulang ke nama publik.
+  - Request berbiaya Rp 0 tidak membuat entri ledger; token tetap tercatat di `requests`.
+- **Verifikasi**: `make test` dan `make lint` hijau; verifikasi manual 1–4 ke 9Router dengan model murah.
