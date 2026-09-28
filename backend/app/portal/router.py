@@ -2,14 +2,30 @@
 
 from fastapi import APIRouter, Depends
 
-from app.portal import catalog, keys, ledger, me, usage
-from app.portal.admin import balances
+from app.portal import catalog, keys, leaderboard, ledger, me, usage
+from app.portal.admin import audit, balances, health, models, settings, users
+from app.portal.admin import usage as admin_usage
 from app.portal.deps import csrf_protect
 
 router = APIRouter(prefix="/app/api", dependencies=[Depends(csrf_protect)])
-router.include_router(me.router)
-router.include_router(keys.router)
-router.include_router(catalog.router)
-router.include_router(ledger.router)
-router.include_router(usage.router)
-router.include_router(balances.router, prefix="/admin")
+for member_router in (
+    me.router,
+    keys.router,
+    catalog.router,
+    ledger.router,
+    usage.router,
+    leaderboard.router,
+):
+    router.include_router(member_router)
+
+# Every admin route also depends on AdminUser itself; the prefix is only for grouping.
+for admin_router in (
+    balances.router,
+    users.router,
+    admin_usage.router,
+    models.router,
+    settings.router,
+    audit.router,
+    health.router,
+):
+    router.include_router(admin_router, prefix="/admin")
