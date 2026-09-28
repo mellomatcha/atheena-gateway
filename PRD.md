@@ -362,7 +362,7 @@ Layanan Docker Compose di CT 301: `caddy`, `api`, `worker` (job agregasi harian 
 
 | Komponen | vCPU | RAM | Disk | Catatan |
 |---|---|---|---|---|
-| CT 300 — 9Router (install baru dari upstream, menggantikan CT 110) | 2 | 2 GB | 20 GB | 1 instance, state di file |
+| CT 300 — 9Router (install baru dari upstream, menggantikan CT 110) | 2 | 4 GB | 20 GB | 1 instance, port 20128, state di SQLite (`/home/router/.9router/db/data.sqlite`). Build Next.js butuh ±2 GB RAM. Detail: `docs/ops/9router-ct300.md` |
 | CT 301 — Portal (api, worker, Postgres, Redis, Caddy) | 2 | 4 GB | 50 GB | Cukup untuk 25 user. Naikkan ke 4 vCPU / 8 GB saat mendekati 50 user atau RAM terpakai > 75% |
 | VM 999 — agent-hub (sudah ada) | 4 | 8 GB | 80 GB | Lingkungan development (Claude Code, OpenCode). Bukan produksi |
 | Uptime Kuma (opsional, CT terpisah) | 1 | 512 MB | 4 GB | Terpisah agar tetap jalan saat CT 301 bermasalah |
@@ -434,6 +434,7 @@ Host EVO-X2 (96 GB) jauh dari batas. CT 110 (9Router lama) tetap hidup sampai CT
 - **Backup**:
   - `pg_dump` harian, disimpan di disk lain (bukan disk CT 301), retensi 14 hari.
   - `vzdump` mingguan CT 300 dan CT 301.
+  - Data 9Router di CT 300 ada di SQLite mode WAL (`/home/router/.9router/db/data.sqlite`), bukan `db.json`. Backup memakai online backup API SQLite (`sqlite3 .backup` atau `node:sqlite` `backup()`), bukan `cp` file saat aplikasi jalan. `machine-id` dan `jwt-secret` di `/home/router/.9router` ikut di-backup. Prosedur: `docs/ops/9router-ct300.md`.
   - Backup bukti top-up bersama `pg_dump`.
   - **Tes restore minimal sekali sebelum go-live**, lalu sebulan sekali.
 - **Runbook** (`RUNBOOK.md`, dibuat di tahap ops): restart layanan, rollback deploy, restore database, menambah user baru (termasuk Cloudflare Access), rotasi key, apa yang dilakukan jika 9Router down.
@@ -454,7 +455,7 @@ Host EVO-X2 (96 GB) jauh dari batas. CT 110 (9Router lama) tetap hidup sampai CT
 | R8 | Biaya di portal tidak cocok dengan tagihan provider | Laporan ke kantor tidak akurat | Rekonsiliasi bulanan: bandingkan total portal vs console Anthropic |
 | R9 | Agent loop tak terkendali menghabiskan saldo/dana | Pemborosan dana eksperimen | Batas biaya harian per key/user, rate limit, batas stream |
 | R10 | Key bocor (commit ke repo, dibagikan) | Pemakaian oleh pihak lain | Hash, revoke instan, rate limit, notifikasi pemakaian anomali (fase berikutnya) |
-| R11 | 9Router upstream tidak mendukung provider CodeBuddy seperti fork wyx0 | Akun CB tidak terbaca di CT 300 | Uji di CT 300 sebelum cutover; CT 110 lama tetap hidup sebagai cadangan; backup `db.json` dari CT 110 |
+| R11 | 9Router upstream tidak mendukung provider CodeBuddy seperti fork wyx0 | Akun CB tidak terbaca di CT 300 | Uji di CT 300 sebelum cutover; CT 110 lama tetap hidup sebagai cadangan; backup `db.json` dari CT 110 (9Router lama). Di CT 300, data 9Router ada di SQLite (`/home/router/.9router/db/data.sqlite`), bukan `db.json` |
 | R12 | Race condition saat request paralel memotong saldo | Saldo salah | Transaksi + row lock (FR-3.21), test konkurensi |
 | R13 | Bus factor: hanya satu orang yang paham sistem | Sistem terbengkalai saat pemilik tidak tersedia | Runbook, PRD, dan kode terdokumentasi |
 
