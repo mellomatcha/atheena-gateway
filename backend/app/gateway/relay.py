@@ -40,6 +40,8 @@ ERROR_BODY_DRAIN_LIMIT = 64 * 1024
 SLOT_REFRESH_INTERVAL_S = 30.0
 
 CLIENT_CLOSED_STATUS = 499
+# SSE lines forwarded verbatim when an event has no data payload.
+_SSE_PASSTHROUGH_PREFIXES = (b":", b"event:", b"id:", b"retry:")
 
 
 @dataclass
@@ -123,8 +125,11 @@ class SseRewriter:
         lines = block.split(b"\n")
         data_lines = [line[5:].lstrip(b" ") for line in lines if line.startswith(b"data:")]
         if not data_lines:
-            # Comments and field-only events carry no payload.
-            return block + b"\n\n"
+            # Comments and field-only events carry no payload; anything else (for example a raw
+            # JSON body where SSE was expected) is not forwarded unchecked.
+            if all(line.startswith(_SSE_PASSTHROUGH_PREFIXES) or not line for line in lines):
+                return block + b"\n\n"
+            return b""
         data = b"\n".join(data_lines)
         if data.strip() == b"[DONE]":
             return block + b"\n\n"

@@ -397,3 +397,18 @@ async def test_prompt_and_response_never_logged(
     assert "proxy request" in out
     for needle in (PROMPT_MARKER, RESPONSE_MARKER, member.key, "fake-upstream-key"):
         assert needle not in out
+
+
+def test_sse_rewriter_drops_non_sse_blocks() -> None:
+    from app.gateway.errors import ApiFormat
+    from app.gateway.relay import SseRewriter
+    from app.gateway.usage import UsageTracker
+
+    rewriter = SseRewriter(ApiFormat.OPENAI, "public-model", UsageTracker(ApiFormat.OPENAI))
+    out = rewriter.feed(b": keepalive\n\nevent: ping\n\n")
+    out += rewriter.feed(b'{"model": "fake/raw-json-body"}\n\n')
+    out += rewriter.feed(b'data: {"model": "fake/x", "choices": []}\r\n\r\n')
+    out += rewriter.flush()
+    assert b"fake/" not in out
+    assert b": keepalive\n\n" in out
+    assert b'"model":"public-model"' in out
