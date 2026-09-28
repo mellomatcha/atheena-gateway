@@ -21,7 +21,14 @@ def _free_port() -> int:
 def serve(app: ASGIApp) -> Iterator[str]:
     """Yield the base URL (http://127.0.0.1:PORT) while the app is served."""
     port = _free_port()
-    config = uvicorn.Config(app, host="127.0.0.1", port=port, log_level="warning", lifespan="on")
+    config = uvicorn.Config(
+        app,
+        host="127.0.0.1",
+        port=port,
+        log_level="warning",
+        lifespan="on",
+        timeout_graceful_shutdown=1,
+    )
     server = uvicorn.Server(config)
     thread = threading.Thread(target=server.run, daemon=True)
     thread.start()
