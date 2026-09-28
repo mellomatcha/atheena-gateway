@@ -4,11 +4,14 @@
 1. `PRD.md` — acuan utama. Semua keputusan arsitektur dan kebutuhan (FR-x.x) ada di sana.
 2. File task yang sedang dikerjakan di `tasks/`.
 
-Jika instruksi task bertentangan dengan PRD, PRD yang berlaku, kecuali task secara eksplisit menyatakan mengubah PRD. Jika PRD ambigu atau diam, **tanya dulu**, jangan mengarang.
+Jika instruksi task bertentangan dengan PRD, PRD yang berlaku, kecuali task secara eksplisit menyatakan mengubah PRD. Jika PRD ambigu atau diam, pakai default PRD §15 bila ada dan catat di `docs/progress.md`; jika tidak ada default dan keputusannya berisiko bertentangan dengan PRD, tanya dulu. Jangan mengarang.
 
 ## Cara bekerja
-- Kerjakan **satu task per sesi**. Jangan menambah fitur di luar scope task, sekecil apa pun.
-- Mulai setiap task dengan rencana singkat (file yang dibuat/diubah, urutan kerja, cara verifikasi). Tunggu persetujuan sebelum menulis kode.
+- Kerjakan task **satu per satu, berurutan**. Jangan menambah fitur di luar scope task, sekecil apa pun.
+- Kerjakan secara **otonom**. Tulis rencana singkat tiap task di `tasks/TASK-xxx.md` (file yang dibuat/diubah, urutan kerja, cara verifikasi), lalu langsung eksekusi.
+- Berhenti dan tanya **hanya** jika: butuh secret atau kredensial yang tidak ada, keputusan bertentangan dengan PRD, atau aksi tak bisa dibatalkan di luar repo.
+- Keputusan terbuka: pakai default PRD §15 dan catat di `docs/progress.md`.
+- Gerbang kualitas tiap task (wajib sebelum lanjut ke task berikutnya): `make test` dan `make lint` hijau, commit kecil-kecil, push.
 - Commit kecil dan sering. Pesan commit dalam bahasa Inggris, format `type(scope): ringkasan` (misal `feat(proxy): stream passthrough`).
 - Task dianggap selesai hanya dengan **bukti**: output test yang lulus + langkah reproduksi manual. Laporan "sudah selesai" tanpa bukti tidak diterima.
 - Di akhir task, tulis ringkasan ke `docs/progress.md`: apa yang dikerjakan, keputusan yang diambil, dan hal yang ditunda.
