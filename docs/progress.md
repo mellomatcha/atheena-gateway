@@ -122,3 +122,67 @@ curl -s -o /dev/null -w '%{http_code}\n' http://10.10.10.30:20128/
 curl -s -o /dev/null -w '%{http_code}\n' http://10.10.10.30:20128/v1/models
 ssh ct300 'pm2 restart 9router && sleep 10 && ss -ltnp | grep 20128'
 ```
+
+## TASK-001 — Proxy inti dan pencatatan pemakaian
+
+Selesai 28 September 2026. Satu bagian tertunda: verifikasi manual 3–4 terhadap 9Router sungguhan. Alasannya ada di bawah.
+
+### Yang dikerjakan
+- `backend/app/gateway/`: endpoint `GET /v1/models`, `POST /v1/chat/completions`, `POST /v1/messages`.
+  - `keys.py`: format `sk-ath-` + 40 base62, hash SHA-256, cache Redis 60 detik, `invalidate_keys` / `invalidate_user_keys` untuk revoke instan.
+  - `routes.py`: pemeriksaan berurutan FR-3.3 s.d. 3.10, lalu penerusan.
+  - `relay.py`: response class ASGI sendiri. Heartbeat `: ping` untuk stream dan spasi di depan JSON untuk non-stream. Error sebelum commit memakai status HTTP yang benar; setelah commit dikirim di dalam body. Field `model` ditulis ulang ke nama publik, dan event yang tidak dikenali dibuang. Pencatatan tetap jalan walau klien memutus (`asyncio.shield`).
+  - `usage.py`: parser usage OpenAI/Anthropic (termasuk cache write/read), estimasi, biaya Rupiah dengan `Decimal` dan pembulatan ke atas.
+  - `billing.py`: satu transaksi `SELECT ... FOR UPDATE` → `users.balance_idr` + `ledger_entries` + `requests`.
+  - `limits.py`: rate limit per key/user dan slot stream bersamaan, di Redis via Lua (atomik, aman untuk banyak replika).
+- `make create-key EMAIL=... NAME=...` (`app/cli.py`).
+- Fake upstream (`tests/fake_upstream/`) dijalankan dengan uvicorn sungguhan di thread, supaya streaming, TTFT lambat, dan disconnect terjadi nyata.
+- 69 test baru (98 total).
+
+### Keputusan yang diambil
+- **Urutan pemeriksaan**: 413 (ukuran body) dicek tepat setelah 401, bukan setelah 429. Nama model ada di dalam body, jadi body harus dibaca dulu. Urutan lain sesuai FR-3.3 s.d. 3.10.
+- **Error upstream tidak pernah diteruskan.** CT 110 mengembalikan pesan seperti `[codebuddy/gemini-3.1-flash-lite] ...` yang membocorkan ID dan provider (FR-4.0), dan bisa mengutip prompt. Pemetaannya: upstream 400 → 400, 413 → 413, 429 → 429 (`Retry-After: 30`), lainnya → 502. Pesan diganti teks tetap berbahasa Indonesia. Error inline dari upstream di tengah stream juga diganti.
+- **Request berbiaya Rp 0 tidak membuat entri ledger.** Token tetap tercatat di `requests`. Tujuannya menghindari jutaan entri nol selama harga default Rp 0 (Q1).
+- **Usage OpenAI**: `prompt_tokens` sudah termasuk `cached_tokens`, jadi `input_tokens = prompt − cached − cache_write` supaya token cache tidak ditagih dua kali.
+- **Estimasi (FR-3.19)** hanya bila upstream sudah menerima request (200): klien memutus, stream terputus, atau usage tidak ada. Estimasinya ±4 karakter per token. Error upstream sebelum ada output dicatat dengan usage 0 (FR-3.22).
+- **Heartbeat** hanya sebelum byte pertama (sesuai FR-3.15). Klien yang memutus dicatat dengan status 499 dan `error_type = client_disconnected`.
+- **Batas harian** di-reset pukul 00:00 WIB (UTC+7).
+- `last_used_at` key diperbarui paling sering sekali per menit, supaya key yang ramai tidak memicu tulis per request.
+- `GET /v1/models` memakai format Anthropic bila ada header `anthropic-version`, dan format OpenAI selain itu.
+- **Di luar scope, belum dibuat**: `/v1/messages/count_tokens` (Claude Code tetap jalan tanpanya, lihat bukti di bawah).
+
+### Tertunda
+- **Verifikasi manual 3–4 terhadap 9Router sungguhan** (selisih token 0 untuk 10–20 request, `cache_read_tokens > 0` pada prompt berulang). Upstream dev CT 110 sedang tidak bisa inference: probe 28 September memberi `429 Credits exhausted`, lalu semua model murah (`cb/gemini-3.1-flash-lite`, `cb/glm-4.6`, `cb/claude-haiku-4.5`, `cb/default-model-lite`, `cb/gemini-2.5-flash`) mengembalikan `400 service info not found`. Akan diulang setelah CT 110 pulih atau setelah cutover "CT 300 siap".
+- Uji 524 lewat Cloudflare sungguhan: setelah tunnel ada (TASK-006). Perilakunya sudah diuji dengan fake upstream.
+- Job pembuatan partisi `requests` bulanan: bersama worker di TASK-004.
+
+### Bukti selesai (28 September 2026, VM 999)
+- `make test` → **98 passed** (13,6 detik). `make lint` → ruff, format, mypy (41 file) bersih; oxlint frontend bersih.
+- Test wajib TASK-001 dan lokasinya:
+  - Token dan biaya empat kombinasi: `test_gateway_billing.py::test_usage_and_cost_recorded_for_each_format`.
+  - Cache Anthropic: `::test_anthropic_cache_write_and_read_billed_separately`.
+  - Heartbeat stream/non-stream: `test_gateway_stream.py::test_stream_heartbeat_before_first_byte`, `::test_nonstream_heartbeat_is_leading_whitespace`.
+  - Konkurensi 20 paralel (saldo akhir tepat, 20 entri ledger, `balance_after` turun berurutan): `::test_twenty_parallel_requests_debit_balance_exactly`.
+  - 402 / 403 tier / 403 helios / 429 + `Retry-After`: `test_gateway_checks.py`.
+  - ID upstream tidak bocor: `assert_no_upstream_leak` dipanggil di semua test stream, `/v1/models`, dan error.
+  - Log tanpa prompt/response: `::test_prompt_and_response_never_logged`.
+- **Klien sungguhan ke portal** (uvicorn di `:18000`, DB `atheena_test`, fake upstream di `:18081`):
+  - OpenCode 1.18.32, satu provider `atheena` (`@ai-sdk/openai-compatible`), `opencode run -m atheena/demo-sonnet "katakan halo"` → jawaban tampil, exit 0. Log portal: `/v1/chat/completions stream=True status=200 input=120 output=30 cost_idr=1`.
+  - Claude Code, `ANTHROPIC_BASE_URL=http://localhost:18000` + `ANTHROPIC_AUTH_TOKEN=<key portal>`, `claude -p "katakan halo" --model demo-sonnet` → jawaban tampil, exit 0. Log portal: `/v1/messages stream=True status=200 input=120 output=30 cache_read=80`.
+  - Bonus: saat fake upstream belum mengirim `finish_reason`, OpenCode mengulang terus dan dipotong 429 portal di request ke-61 (rate limit 60/menit terbukti terhadap klien sungguhan).
+- **Portal → 9Router CT 110 sungguhan** (model `gemini-3.1-flash-lite` → `cb/gemini-3.1-flash-lite`):
+  - non-stream → `HTTP 400 {"error":{"message":"Provider model menolak request ini.",...,"code":"upstream_rejected"}}`
+  - stream → `HTTP 429 ... "upstream_rate_limited"`
+  - `/v1/messages` → `HTTP 429 {"type":"error","error":{"type":"rate_limit_error",...}}`
+  - Tidak ada `codebuddy` / `cb/` di response. `/readyz` → semua `ok`.
+
+### Cara reproduksi
+```bash
+make test && make lint
+make seed && make create-key EMAIL=<email-admin> NAME=laptop   # key tampil sekali
+make run
+curl -s localhost:8000/v1/models -H "Authorization: Bearer <key>"
+curl -sN localhost:8000/v1/chat/completions -H "Authorization: Bearer <key>" \
+  -H 'content-type: application/json' \
+  -d '{"model":"<nama-publik>","stream":true,"messages":[{"role":"user","content":"hi"}]}'
+```

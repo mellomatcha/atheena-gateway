@@ -96,7 +96,9 @@ async def _openai_stream(model: str, sc: Scenario, include_usage: bool) -> Async
                 "id": "chatcmpl-fake",
                 "object": "chat.completion.chunk",
                 "model": model,
-                "choices": [{"index": 0, "delta": delta, "finish_reason": None}],
+                "choices": [
+                    {"index": 0, "delta": delta, "finish_reason": "stop" if i == n - 1 else None}
+                ],
             }
         )
         if sc.flag("hang") and i == 0:
