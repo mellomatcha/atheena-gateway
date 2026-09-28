@@ -1,5 +1,5 @@
-import { NavLink, Outlet } from 'react-router'
-import { formatNumber } from '../format'
+import { Link, NavLink, Outlet } from 'react-router'
+import { formatIDR, formatNumber } from '../format'
 import { useMe } from '../session-context'
 
 export function Shell() {
@@ -8,6 +8,9 @@ export function Shell() {
 
   return (
     <div className="shell">
+      <a className="skip-link" href="#konten">
+        Langsung ke konten
+      </a>
       <aside className="rail">
         <div className="rail__top">
           <a className="wordmark" href="/app">
@@ -22,7 +25,13 @@ export function Shell() {
           </div>
         </div>
         <nav className="nav" aria-label="Menu utama">
+          <NavLink to="/app" end>
+            Ringkasan
+          </NavLink>
+          <NavLink to="/app/keys">API key</NavLink>
+          <NavLink to="/app/mulai">Mulai</NavLink>
           <NavLink to="/app/topup">Top-up</NavLink>
+          <NavLink to="/app/profil">Pengaturan</NavLink>
           {me.role === 'admin' && (
             <>
               <p className="nav__group">Admin</p>
@@ -36,7 +45,14 @@ export function Shell() {
           {me.email}
         </p>
       </aside>
-      <main className="main">
+      <main className="main" id="konten" tabIndex={-1}>
+        {low && (
+          <p className="banner" role="status">
+            Saldo Anda {formatIDR(me.balance_idr)}, di bawah batas peringatan{' '}
+            {formatIDR(me.low_balance_threshold_idr)}. Request ditolak saat saldo di bawah minimum.{' '}
+            <Link to="/app/topup">Top-up sekarang</Link>
+          </p>
+        )}
         <Outlet />
       </main>
     </div>
