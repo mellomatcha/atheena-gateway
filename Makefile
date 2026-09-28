@@ -10,7 +10,7 @@ COMPOSE := docker compose -f docker-compose.dev.yml
 USE_DOCKER ?= 0
 
 .DEFAULT_GOAL := help
-.PHONY: help install dev down migrate seed test lint fmt run lock frontend create-key
+.PHONY: help install dev down migrate seed test lint fmt run lock frontend create-key worker
 
 help:
 	@grep -E '^[a-z-]+:.*## ' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*## "}; {printf "  %-10s %s\n", $$1, $$2}'
@@ -70,6 +70,9 @@ fmt: install ## Auto-fix lint issues and format backend code
 
 run: install ## Run the API on http://127.0.0.1:8000 with auto-reload
 	cd backend && $(BIN)/uvicorn app.main:app --host 127.0.0.1 --port 8000 --reload --no-access-log
+
+worker: install ## Run the scheduled jobs (daily usage rollup, request partitions) every 10 min
+	cd backend && $(PY) -m app.worker
 
 lock: install ## Regenerate backend/requirements.lock after changing pyproject pins
 	$(PY) -m pip install -q -e 'backend[dev]'
