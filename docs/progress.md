@@ -375,3 +375,43 @@ APP_ENV=dev DEV_AUTH_EMAIL=<email> make run   # terminal 1
 make worker                                   # terminal 2 (rollup tiap 10 menit)
 cd frontend && npm run dev                    # terminal 3, buka http://localhost:5173/app
 ```
+
+## TASK-005 — Dashboard admin dan leaderboard (SEDANG DIKERJAKAN)
+
+Status per 28 September 2026: sesi berhenti karena batas pemakaian. Rencana: `tasks/TASK-005.md`.
+
+### Sudah selesai (di-commit, `make lint` + `make test` hijau, 152 test lama lulus)
+Endpoint backend admin dan leaderboard, **belum punya test sendiri**:
+- `app/portal/admin/users.py`: `GET /admin/users/{id}`, `POST /admin/users`, `PATCH /admin/users/{id}`.
+  - Suspend/ubah tier menghapus cache key user (`invalidate_user_keys`).
+  - Admin tidak bisa mengunci akun sendiri.
+  - Perubahan diaudit.
+- `app/portal/admin/usage.py` + `app/services/reports.py`: `GET /admin/usage/{summary,timeseries,requests,export.csv}` dengan filter `user`; rincian per user/model/proyek/provider; `GET /admin/reports/monthly[.csv]?month=YYYY-MM&by=project|user`.
+- `app/portal/admin/models.py`: `GET/POST /admin/models`, `PATCH /admin/models/{id}`.
+  - Validasi nama publik tanpa prefix.
+  - Audit `model.price_update` berisi nilai lama/baru (FR-4.3).
+  - `POST /admin/models/sync` (FR-4.5) tidak menambah model otomatis.
+- `app/portal/admin/settings.py`: `GET/PATCH /admin/settings`, `GET/POST/PATCH /admin/projects` (diaudit).
+- `app/portal/admin/audit.py`: `GET /admin/audit-logs?page&action`.
+- `app/portal/admin/health.py`: `GET /admin/health` (9Router, stream aktif, error rate dan latensi 1 jam).
+- `app/services/leaderboard.py` + `app/portal/leaderboard.py`: `GET /app/api/leaderboard?period=week|month&metric=tokens|requests|cost|efficiency`.
+  - Sumber `usage_daily`; minggu Senin WIB; efisiensi minimal 100 request; opt-out dan user nonaktif disembunyikan.
+
+### Sisa pekerjaan TASK-005
+1. Test backend untuk semua endpoint di atas (daftar ada di `tasks/TASK-005.md` bagian Test), terutama:
+   - Semua endpoint admin menolak member (403).
+   - Suspend → key langsung 401 walau cache hangat.
+   - Audit harga lama/baru.
+   - Laporan bulanan = jumlah `requests`.
+   - Sync memakai fake upstream `/v1/models` (fake upstream belum punya route `GET /v1/models`, perlu ditambah).
+   - Urutan leaderboard, opt-out, dan ambang 100 request.
+2. Frontend: `pages/admin/{Users,Usage,Models,Settings,Audit,Status}.tsx` dan `pages/Leaderboard.tsx`, plus nav di `Shell.tsx`, route di `App.tsx` (lazy), dan gaya mengikuti `styles.css`.
+3. Verifikasi manual di Chromium headless (cara pakainya ada di catatan TASK-003/004; Playwright dan library sistem diekstrak ke `$CLAUDE_JOB_DIR/tmp`, perlu dipasang ulang bila folder itu hilang).
+4. Ringkasan dan bukti TASK-005 di file ini.
+
+### Setelah TASK-005
+TASK-006 (deploy CT 301) dan TASK-007 (landing page) belum dimulai.
+
+### Catatan untuk sesi berikutnya
+- Server uji yang dijalankan di background dimatikan berdasarkan port/PID proses sebenarnya. PID dari `$!` setelah `cd … &&` ternyata PID subshell.
+- DB `atheena_test` berisi data demo (user `sari.demo@example.test`) dan akan dibangun ulang otomatis oleh `make test`.
