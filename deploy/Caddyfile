@@ -1,0 +1,10 @@
+# Internal reverse proxy on CT 301 (PRD §4.1, §9.1). PLACEHOLDER: completed in the deployment task.
+# TODO(deploy):
+# - serve the built frontend (frontend/dist) as static files
+# - reverse_proxy /v1/* and /app/* to api:8000 with streaming (flush_interval -1)
+# - security headers: CSP, HSTS, X-Content-Type-Options (PRD §11)
+# - never expose /healthz or /readyz through the tunnel (PRD §8)
+
+:80 {
+	respond "Atheena AI Gateway: deployment not configured yet" 503
+}

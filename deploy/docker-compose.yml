@@ -1,0 +1,47 @@
+# Production stack for CT 301 (PRD §9.1). PLACEHOLDER: completed in the deployment task.
+# TODO(deploy): build the api/worker image, wire secrets from /opt/atheena/.env (chmod 600),
+# run containers as non-root, and add backups (PRD §11, §12).
+name: atheena
+
+services:
+  caddy:
+    image: caddy:2
+    # TODO(deploy): serve frontend/dist and reverse-proxy /v1/* and /app/* to api.
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+    depends_on:
+      - api
+
+  api:
+    # TODO(deploy): Dockerfile for backend/ (uvicorn app.main:app).
+    image: atheena-api:TODO
+    env_file: .env
+    depends_on:
+      - postgres
+      - redis
+
+  worker:
+    # TODO(deploy): daily usage_daily aggregation, requests partition creation, cleanup.
+    image: atheena-api:TODO
+    env_file: .env
+    depends_on:
+      - postgres
+
+  postgres:
+    image: postgres:16
+    # TODO(deploy): credentials from .env, data volume, pg_dump backup job.
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+
+  redis:
+    image: redis:7
+
+  cloudflared:
+    image: cloudflare/cloudflared:latest
+    # TODO(deploy): tunnel token from .env; routes ai./api. hostnames to caddy.
+    command: tunnel run
+    depends_on:
+      - caddy
+
+volumes:
+  postgres-data:
