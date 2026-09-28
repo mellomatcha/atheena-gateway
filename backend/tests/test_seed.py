@@ -1,7 +1,8 @@
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncConnection
 
-from app.seed import DEFAULT_SETTINGS, SEED_MEMBER_EMAIL, SEED_MODELS, seed
+from app.gateway.settings_store import DEFAULT_SETTINGS
+from app.seed import SEED_MEMBER_EMAIL, SEED_MODELS, seed
 
 
 async def test_seed_creates_admin_member_project_and_settings(db: AsyncConnection) -> None:
