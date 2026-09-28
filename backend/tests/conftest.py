@@ -1,11 +1,15 @@
 import os
-from collections.abc import AsyncIterator, Callable
+from collections.abc import AsyncIterator, Callable, Iterator
 from contextlib import AbstractAsyncContextManager, asynccontextmanager
+from pathlib import Path
 
 import httpx
 import pytest
+from alembic import command
+from alembic.config import Config
 from fastapi import FastAPI
 from pydantic import SecretStr
+from sqlalchemy.ext.asyncio import AsyncConnection, create_async_engine
 
 from app.config import Settings
 from app.main import create_app
@@ -17,6 +21,37 @@ TEST_DATABASE_URL = os.environ.get(
 TEST_REDIS_URL = os.environ.get("TEST_REDIS_URL", "redis://127.0.0.1:6379/15")
 FAKE_UPSTREAM = "http://fake-upstream.test/v1"
 FAKE_UPSTREAM_KEY = "fake-upstream-key"
+
+BACKEND_DIR = Path(__file__).resolve().parents[1]
+
+
+def alembic_config(database_url: str = TEST_DATABASE_URL) -> Config:
+    config = Config(BACKEND_DIR / "alembic.ini")
+    config.attributes["database_url"] = database_url
+    config.attributes["configure_logger"] = False
+    return config
+
+
+@pytest.fixture(scope="session", autouse=True)
+def migrated_database() -> Iterator[None]:
+    """Rebuild the test schema from scratch once per session using the real migrations."""
+    config = alembic_config()
+    command.downgrade(config, "base")
+    command.upgrade(config, "head")
+    yield
+
+
+@pytest.fixture
+async def db() -> AsyncIterator[AsyncConnection]:
+    """A connection inside a transaction that is rolled back after the test."""
+    engine = create_async_engine(TEST_DATABASE_URL)
+    async with engine.connect() as conn:
+        transaction = await conn.begin()
+        try:
+            yield conn
+        finally:
+            await transaction.rollback()
+    await engine.dispose()
 
 
 def make_settings(**overrides: object) -> Settings:
