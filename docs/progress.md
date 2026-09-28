@@ -40,9 +40,9 @@ Tanggal: 28 September 2026.
 ### Belum selesai / ditunda
 1. **Katalog model di seed**: `SEED_MODELS` masih kosong. Menunggu `.env` berisi `UPSTREAM_API_KEY` agar daftar model 9Router bisa diambil, lalu pilihan 2-3 model ditunjukkan ke pemilik sebelum dimasukkan.
 2. **`/readyz` terhadap 9Router sungguhan**: saat ini Postgres dan Redis sehat, upstream gagal karena `UPSTREAM_API_KEY` belum diisi (503 `UPSTREAM_API_KEY is not set`).
-3. **CI hijau**: sudah di-push, tapi status Actions belum terverifikasi (VM tidak punya `gh` atau token API).
+3. **CI hijau**: terkonfirmasi pemilik (run #3, commit d304053).
 4. **`make seed` penuh** belum dijalankan ke DB dev, karena `SEED_ADMIN_EMAIL` ada di `.env` yang belum dibuat.
-5. **Pertanyaan untuk TASK-001**: PRD tidak memberi angka default rate limit **per user** (FR-3.7 hanya menyebut 60/menit per key). Seed hanya menyimpan `rate_limit_per_key_per_minute`.
+5. **Rate limit per user**: diputuskan pemilik 120 request/menit (2x per key), disimpan di settings `rate_limit_per_user_per_minute`.
 6. Di luar scope: `pip-audit`/`npm audit` di CI (Tahap 6), job worker untuk partisi dan agregasi.
 
 ### Cara reproduksi

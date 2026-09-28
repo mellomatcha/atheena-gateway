@@ -26,6 +26,8 @@ async def test_seed_creates_admin_member_project_and_settings(db: AsyncConnectio
     }
     assert stored == DEFAULT_SETTINGS
     assert stored["min_balance_idr"] == 1_000
+    assert stored["rate_limit_per_key_per_minute"] == 60
+    assert stored["rate_limit_per_user_per_minute"] == 120
 
 
 async def test_seed_is_idempotent_and_keeps_admin_changes(db: AsyncConnection) -> None:

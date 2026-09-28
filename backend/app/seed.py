@@ -23,6 +23,7 @@ DEFAULT_SETTINGS: dict[str, Any] = {
     "min_balance_idr": 1_000,  # FR-3.5, Q4
     "default_user_daily_cap_idr": None,  # FR-3.6, Q4: inactive
     "rate_limit_per_key_per_minute": 60,  # FR-3.7
+    "rate_limit_per_user_per_minute": 120,  # FR-3.7: 2x per key, decided by owner
     "max_concurrent_streams_per_user": 8,  # FR-3.8
     "max_body_bytes": 20 * 1024 * 1024,  # FR-3.9: 20 MB
     "max_active_keys_per_user": 5,  # FR-2.5
