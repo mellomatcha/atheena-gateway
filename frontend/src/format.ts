@@ -35,3 +35,44 @@ export function parseDigits(text: string): number {
   const digits = text.replace(/\D/g, '').slice(0, 12)
   return digits ? Number(digits) : 0
 }
+
+const compact = new Intl.NumberFormat('id-ID', { notation: 'compact', maximumFractionDigits: 1 })
+const shortDay = new Intl.DateTimeFormat('id-ID', { day: 'numeric', month: 'short', timeZone: 'UTC' })
+const longDay = new Intl.DateTimeFormat('id-ID', {
+  weekday: 'long',
+  day: 'numeric',
+  month: 'long',
+  year: 'numeric',
+  timeZone: 'UTC',
+})
+
+/** 1250000 -> "1,3 jt" for chart axes. */
+export function formatCompact(value: number): string {
+  return compact.format(value)
+}
+
+/** "2026-08-11" (a WIB calendar date) -> "11 Agu" */
+export function formatShortDay(isoDay: string): string {
+  return shortDay.format(new Date(`${isoDay}T00:00:00Z`))
+}
+
+/** "2026-08-11" -> "Selasa, 11 Agustus 2026" */
+export function formatLongDay(isoDay: string): string {
+  return longDay.format(new Date(`${isoDay}T00:00:00Z`))
+}
+
+/** Today's date in WIB as YYYY-MM-DD. */
+export function todayWib(): string {
+  return new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Jakarta' }).format(new Date())
+}
+
+export function shiftDay(isoDay: string, days: number): string {
+  const date = new Date(`${isoDay}T00:00:00Z`)
+  date.setUTCDate(date.getUTCDate() + days)
+  return date.toISOString().slice(0, 10)
+}
+
+export function formatMs(ms: number | null): string {
+  if (ms === null) return '–'
+  return ms < 1000 ? `${ms} ms` : `${(ms / 1000).toFixed(1).replace('.', ',')} dtk`
+}
