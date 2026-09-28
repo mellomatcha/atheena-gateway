@@ -186,3 +186,65 @@ curl -sN localhost:8000/v1/chat/completions -H "Authorization: Bearer <key>" \
   -H 'content-type: application/json' \
   -d '{"model":"<nama-publik>","stream":true,"messages":[{"role":"user","content":"hi"}]}'
 ```
+
+## TASK-002 — Auth portal dan manajemen API key
+
+Selesai 28 September 2026. Rencana: `tasks/TASK-002.md`.
+
+### Yang dikerjakan
+- **Validasi Cloudflare Access** (`app/portal/access.py`):
+  - JWT `Cf-Access-Jwt-Assertion` (atau cookie `CF_Authorization`) diverifikasi RS256 terhadap JWKS `https://<team>/cdn-cgi/access/certs`, dengan cek `aud`, `iss`, `exp`.
+  - Email diambil dari klaim. Bila header `Cf-Access-Authenticated-User-Email` ada, isinya harus cocok.
+  - JWKS di-cache di proses (cache publik, boleh dibangun ulang tiap replika) dan diambil ulang saat ada `kid` baru (maks. sekali/menit) atau setiap jam.
+- **Dependency** (`app/portal/deps.py`):
+  - `current_user`: user harus ada dan `active`, selain itu 403 `account_inactive` "Akun belum aktif, hubungi admin." (FR-1.3).
+  - `require_admin`: cek peran di server.
+  - `csrf_protect`: mutasi wajib membawa header `X-Atheena-CSRF: 1` dan `Origin` dengan host yang sama.
+  - Format error dashboard: `{"error": {"code", "message"}}`.
+- **Endpoint** `/app/api`: `GET/PATCH /me`, `GET/POST /keys`, `DELETE /keys/{id}`, `GET /models`.
+- `app/services/api_keys.py` dan `app/services/catalog.py` dipakai bersama oleh CLI, dashboard, dan gateway.
+- Konfigurasi baru: `CF_ACCESS_TEAM_DOMAIN`, `CF_ACCESS_AUD`, `DEV_AUTH_EMAIL`, `IP_HASH_SECRET`; `APP_ENV` menerima `dev`/`prod`.
+- 29 test baru (127 total).
+
+### Keputusan yang diambil
+- **Bypass dev** hanya aktif bila `APP_ENV=development` dan `DEV_AUTH_EMAIL` terisi. Di `test` juga mati.
+  - Di `production`, aplikasi **menolak start** bila `DEV_AUTH_EMAIL` terisi atau `CF_ACCESS_*` kosong (validasi `Settings`).
+  - Jadi bypass tidak mungkin aktif di produksi, termasuk karena salah konfigurasi.
+- **CSRF** memakai header kustom, bukan token: situs lain tidak bisa mengirim header kustom lintas origin tanpa preflight CORS, dan portal tidak mengaktifkan CORS. Frontend (TASK-004) wajib mengirim `X-Atheena-CSRF: 1` di setiap mutasi.
+- **Batas key aktif** (FR-2.5): saat membuat key, baris user dikunci (`FOR UPDATE`), supaya dua request paralel tidak bisa melewati batas. Melewati batas → 409 `key_limit`.
+- **`model_allowlist`** hanya boleh berisi model yang memang diizinkan tier user (FR-2.7), selain itu 400.
+- **Daftar key** menampilkan key aktif dan yang dicabut. Total pemakaian per key dihitung langsung dari `requests` (nanti bisa pindah ke `usage_daily` bila berat).
+- **`GET /app/api/models`** tidak pernah mengembalikan `upstream_id` atau `provider` (FR-4.0). Kategori (resmi/eksperimen) dan harga ditampilkan.
+- **Suspend user** (FR-1.5): gateway sudah menolak user non-aktif. Supaya instan (tanpa menunggu TTL cache 60 detik), endpoint suspend di TASK-005 wajib memanggil `invalidate_user_keys`.
+
+### Tertunda
+- Login Google sungguhan lewat Cloudflare Access: setelah tunnel dan aplikasi Access dibuat pemilik (TASK-006 menyiapkan template `.env`).
+- Halaman key dan halaman "Akun belum aktif" di UI: TASK-004.
+- Endpoint admin tambah/suspend user (FR-1.4): TASK-005.
+
+### Bukti selesai (28 September 2026, VM 999)
+- `make test` → **127 passed**. `make lint` → bersih.
+- Test utama:
+  - `test_portal_auth.py`: token valid via header dan cookie; token ditolak untuk `aud`/`iss` salah, kedaluwarsa, tanda tangan salah, `kid` tak dikenal, HS256, malformed, tanpa email; header email tanpa JWT ditolak; rotasi kunci; 403 `account_inactive` untuk suspended/pending/tidak terdaftar.
+  - Bypass per environment: `test_dev_bypass_works_only_in_development`, `test_dev_bypass_is_off_in_production` (termasuk `APP_ENV=prod` + `DEV_AUTH_EMAIL` → `ValidationError`); CSRF.
+  - `test_portal_keys.py`: key tampil sekali dan hanya hash yang disimpan; revoke instan walau cache sudah hangat; batas 5; tidak bisa mencabut key orang lain; total pemakaian; allowlist + batas harian; PATCH `/me` tidak bisa mengubah role.
+- **Verifikasi manual** (DB dev, `APP_ENV=dev DEV_AUTH_EMAIL=<admin seed>`, port 18002):
+  ```
+  GET  /app/api/me                     → role=admin tier=advanced status=active
+  POST /app/api/keys (tanpa CSRF)      → 403
+  POST /app/api/keys                   → status=active prefix=sk-ath-k8G1O, key 47 karakter
+  GET  /v1/models (key baru)           → 200 [claude-haiku-4.5-exp, gemini-3.1-flash-lite, glm-4.6]
+  DELETE /app/api/keys/{id}            → 200
+  GET  /v1/models (key sama)           → 401 (langsung)
+  GET  /app/api/models                 → 3 model, tanpa upstream_id / "cb/"
+  APP_ENV=prod DEV_AUTH_EMAIL=... create_app() → ValidationError "DEV_AUTH_EMAIL must not be set when APP_ENV=production"
+  ```
+
+### Cara reproduksi
+```bash
+make test && make lint
+APP_ENV=dev DEV_AUTH_EMAIL=<email-admin> make run
+curl -s localhost:8000/app/api/me
+curl -s -X POST localhost:8000/app/api/keys -H 'X-Atheena-CSRF: 1' \
+  -H 'content-type: application/json' -d '{"name":"laptop"}'
+```
