@@ -4,15 +4,13 @@ import argparse
 import asyncio
 import sys
 
-from sqlalchemy import func, select
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 
 from app.config import get_settings
 from app.db import create_sessionmaker
-from app.gateway.keys import display_prefix, generate_key, hash_key
-from app.gateway.settings_store import load_settings
-from app.ids import new_id
-from app.models import ApiKey, User
+from app.models import User
+from app.services.api_keys import ApiKeyError, create_api_key
 
 
 class CliError(Exception):
@@ -24,25 +22,11 @@ async def create_key(session: AsyncSession, email: str, name: str) -> str:
     user = await session.scalar(select(User).where(User.email == email.strip().lower()))
     if user is None:
         raise CliError(f"user {email} not found")
-    if not name.strip():
-        raise CliError("key name must not be empty")
-    active = await session.scalar(
-        select(func.count()).where(ApiKey.user_id == user.id, ApiKey.status == "active")
-    )
-    limit = int((await load_settings(session))["max_active_keys_per_user"])
-    if (active or 0) >= limit:
-        raise CliError(f"user already has {limit} active keys (FR-2.5)")
-    key = generate_key()
-    session.add(
-        ApiKey(
-            id=new_id(),
-            user_id=user.id,
-            name=name.strip(),
-            key_hash=hash_key(key),
-            key_prefix=display_prefix(key),
-        )
-    )
-    return key
+    try:
+        created = await create_api_key(session, user, name)
+    except ApiKeyError as exc:
+        raise CliError(exc.message) from exc
+    return created.plaintext
 
 
 async def _run(args: argparse.Namespace) -> int:

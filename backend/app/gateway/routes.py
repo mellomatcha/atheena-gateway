@@ -36,6 +36,7 @@ from app.gateway.settings_store import load_gateway_settings
 from app.gateway.usage import Prices, UsageTracker, compute_cost_idr, parse_json
 from app.logs import request_id_var
 from app.models import AIModel, Project, User
+from app.services.catalog import allowed_models
 
 logger = logging.getLogger(__name__)
 
@@ -65,25 +66,6 @@ def _client_ip_hash(request: Request, settings: Settings) -> str | None:
 def _project(request: Request) -> str | None:
     value = (request.headers.get("x-project") or "").strip().lower()
     return value[:PROJECT_MAX] or None
-
-
-def _tier_allows(user_tier: str, min_tier: str) -> bool:
-    return user_tier == "advanced" or min_tier == "basic"
-
-
-async def allowed_models(session: AsyncSession, identity: KeyIdentity) -> list[AIModel]:
-    """Active models allowed for the user's tier and the key's allowlist (FR-3.4, FR-4.4)."""
-    models = (
-        await session.scalars(
-            select(AIModel).where(AIModel.is_active.is_(True)).order_by(AIModel.public_name)
-        )
-    ).all()
-    return [
-        model
-        for model in models
-        if _tier_allows(identity.user_tier, model.min_tier)
-        and (identity.model_allowlist is None or model.public_name in identity.model_allowlist)
-    ]
 
 
 async def _authenticate(request: Request, session: AsyncSession) -> KeyIdentity:
@@ -118,7 +100,7 @@ async def list_models(request: Request) -> Response:
             identity = await _authenticate(request, session)
         except GatewayError as err:
             return err.response(api_format)
-        models = await allowed_models(session, identity)
+        models = await allowed_models(session, identity.user_tier, identity.model_allowlist)
     if api_format is ApiFormat.ANTHROPIC:
         data = [
             {
@@ -197,7 +179,7 @@ async def _proxy(request: Request, api_format: ApiFormat, upstream_path: str) ->
             rec.is_stream = is_stream
 
             # FR-3.4: model in catalog, active, allowed for tier and key allowlist.
-            allowed = await allowed_models(session, identity)
+            allowed = await allowed_models(session, identity.user_tier, identity.model_allowlist)
             model = next((m for m in allowed if m.public_name == model_name), None)
             if model is None:
                 raise errors.model_not_allowed(model_name, [m.public_name for m in allowed])
