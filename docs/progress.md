@@ -309,3 +309,69 @@ make test && make lint && make frontend
 APP_ENV=dev DEV_AUTH_EMAIL=<email-admin> make run   # terminal 1
 cd frontend && npm run dev                          # terminal 2, buka http://localhost:5173/app/topup
 ```
+
+## TASK-004 — Dashboard member dan agregasi harian
+
+Selesai 28 September 2026. **MVP selesai di tahap ini.** Rencana: `tasks/TASK-004.md`.
+
+### Yang dikerjakan
+- **API member**: `GET /app/api/usage/summary`, `/usage/timeseries`, `/usage/requests`, `/usage/export.csv`, `/usage/facets`, `/config`.
+  - Semua memakai tanggal WIB inklusif `from`/`to` (default 30 hari, maksimal 366).
+  - Filter: model, key, proyek (`none` = tanpa proyek), status (`success`/`failed`).
+- `app/services/usage.py`: query bersama dengan `user_id=None` untuk admin, jadi TASK-005 tinggal memakainya.
+- **Worker** `app/worker.py` (`make worker`, `python -m app.worker --once --backfill-days N`):
+  - Setiap 10 menit, `usage_daily` untuk hari ini dan kemarin dihitung ulang (upsert idempoten).
+  - Partisi `requests` bulan ini + 3 bulan ke depan dibuat (menutup TODO migrasi 0001).
+  - `pg_try_advisory_xact_lock`, jadi aman bila ada lebih dari satu replika.
+- **Frontend**:
+  - **Ringkasan** (`/app`): strip hari ini / 7 / 30 hari + model terbanyak, filter yang tersimpan di URL, bar chart harian dengan toggle Rupiah/Token, log request, ekspor CSV.
+  - **API key** (`/app/keys`): buat (key tampil sekali + tombol salin), batasan opsional (batas harian, allowlist model), cabut dengan konfirmasi.
+  - **Mulai** (`/app/mulai`): snippet OpenCode, Claude Code, Cursor, curl, plus tabel model yang bisa dipakai.
+  - **Pengaturan** (`/app/profil`): nama tampilan, ambang saldo rendah, opt-out leaderboard.
+  - Banner saldo rendah (FR-5.5), skip link, code splitting per halaman.
+- 10 test baru (152 total).
+
+### Keputusan yang diambil
+- **Dashboard member membaca langsung dari `requests`, bukan dari `usage_daily`.**
+  - Alasan: angka grafik harus sama dengan tabel log (acceptance Tahap 4), dan filter key/status tidak ada di `usage_daily`.
+  - Dengan indeks `(user_id, started_at)`, query per user untuk 30 hari tetap ringan pada skala 50 user.
+  - `usage_daily` dipakai untuk laporan admin dan leaderboard (TASK-005) serta retensi 12 bulan nanti.
+- **Hari = tanggal WIB (UTC+7)**, sama dengan batas harian di proxy. Request pukul 23.30 WIB masuk hari itu walau di UTC masih siang.
+- **Grafik bar**, bukan garis: datanya total harian yang dibandingkan antarhari. Tabel log di bawahnya menjadi alternatif aksesibel, dan grafik punya ringkasan teks untuk screen reader.
+- **CSV**: di-stream (maksimal 200.000 baris per ekspor), ada BOM supaya Excel membaca UTF-8, dan sel teks yang diawali `=`, `+`, `-`, `@` diberi awalan `'` (anti CSV injection). Nama proyek berasal dari header `X-Project` pengguna, jadi ini wajib.
+- **Key baru di quickstart** dibawa lewat state router saja, tidak lewat URL atau `localStorage`.
+- `PUBLIC_API_BASE_URL` (default `https://api.atheena.online/v1`) dipakai untuk snippet. Claude Code memakai root tanpa `/v1`.
+- **Performa**: Recharts (sesuai §9.1) hanya dimuat di halaman Ringkasan. Bundle awal 238 kB (gzip 76 kB), chunk Overview 368 kB (gzip 106 kB).
+- **Label sumbu X** dihitung dari lebar grafik yang diukur (`ResizeObserver`). Mode otomatis Recharts tetap menumpuk label di HP.
+
+### Tertunda
+- Retensi 12 bulan + agregasi lama (§6): Tahap 6.
+- Tanggal di `input type=date` mengikuti locale browser (di Chromium headless berbahasa Inggris tampil `08/30/2026`; di browser berbahasa Indonesia tampil `30/08/2026`).
+
+### Bukti selesai (28 September 2026, VM 999)
+- `make test` → **152 passed**. `make lint` → bersih (oxlint 0 warning). `npm run build` sukses.
+- Test utama (`test_usage.py`):
+  - Batas hari WIB (23.30 vs 00.30 WIB); hari kosong diisi 0.
+  - **Total grafik = jumlah log** untuk 7 kombinasi filter.
+  - Filter memilih baris yang benar; data user lain tidak pernah muncul.
+  - Paginasi 50/halaman; ringkasan jendela waktu dan model terbanyak; rentang tidak valid → 400.
+  - CSV hanya milik sendiri dan formula dinetralkan.
+  - Rollup = agregasi `requests`, idempoten, request terlambat ikut terhitung.
+  - Partisi dibuat; worker kedua dilewati saat lock dipegang.
+- **Uji manual end-to-end** (DB `atheena_test`, fake upstream `:18081`, API bypass dev `:8000`, `vite preview` `:4173`, Chromium headless). Data: 145 request historis 29 hari + 6 request hari ini lewat proxy sungguhan.
+  - Tanpa user terdaftar → halaman "Akun belum aktif".
+  - Ringkasan: grafik "Rp 23.306 dari 151 request" = pager log "151 request".
+  - Filter model `claude-sonnet-4.6` + satuan Token → URL `/app?from=2026-08-30&to=2026-09-28&model=claude-sonnet-4.6`, grafik "927.540 token dari 39 request", CSV terunduh `atheena-pemakaian-2026-08-30-2026-09-28.csv` berisi 39 baris.
+  - Buat key → panel "hanya ditampilkan sekali" → "Pasang di OpenCode atau Claude Code" → snippet berisi key asli, URL tetap `/app/mulai` (key tidak ada di URL).
+  - Batas 5 key aktif terbukti di UI (pembuatan key ke-6 ditolak sampai key lama dicabut).
+  - `X-Project: helios` + model eksperimen lewat proxy → `403 project_official_only`.
+  - HP 390 px: tanpa scroll horizontal; strip ringkasan 2 kolom, log bertumpuk.
+  - `python -m app.worker --once --backfill-days 30` → "rollup done hari: 31 baris: 117"; `sum(usage_daily.cost_idr)` = `sum(requests.cost_idr)` = 23.306.
+
+### Cara reproduksi
+```bash
+make test && make lint && make frontend
+APP_ENV=dev DEV_AUTH_EMAIL=<email> make run   # terminal 1
+make worker                                   # terminal 2 (rollup tiap 10 menit)
+cd frontend && npm run dev                    # terminal 3, buka http://localhost:5173/app
+```
