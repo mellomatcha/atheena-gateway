@@ -31,16 +31,30 @@ async def test_seed_creates_admin_member_project_and_settings(db: AsyncConnectio
     assert stored["rate_limit_per_user_per_minute"] == 120
 
 
+async def _counts(db: AsyncConnection) -> dict[str, int]:
+    # Other tests commit their own rows to the test database, so compare deltas.
+    queries = {
+        "users": "SELECT count(*) FROM users",
+        "projects": "SELECT count(*) FROM projects",
+        "models": "SELECT count(*) FROM models",
+        "settings": "SELECT count(*) FROM settings",
+    }
+    return {name: int(await db.scalar(text(sql)) or 0) for name, sql in queries.items()}
+
+
 async def test_seed_is_idempotent_and_keeps_admin_changes(db: AsyncConnection) -> None:
+    before = await _counts(db)
     await seed(db, "admin@example.test")
+    after_first = await _counts(db)
     await db.execute(
         text("UPDATE settings SET value = '5000'::jsonb WHERE key = 'min_balance_idr'")
     )
     await seed(db, "admin@example.test")
 
-    assert await db.scalar(text("SELECT count(*) FROM users")) == 2
-    assert await db.scalar(text("SELECT count(*) FROM projects")) == 1
-    assert await db.scalar(text("SELECT count(*) FROM models")) == len(SEED_MODELS)
+    assert await _counts(db) == after_first
+    assert after_first["users"] - before["users"] == 2
+    assert after_first["models"] - before["models"] == len(SEED_MODELS)
+    assert await db.scalar(text("SELECT count(*) FROM projects WHERE slug = 'helios'")) == 1
     assert await db.scalar(text("SELECT value FROM settings WHERE key = 'min_balance_idr'")) == 5000
 
 
@@ -51,8 +65,10 @@ async def test_seed_creates_starter_catalog(db: AsyncConnection) -> None:
         text(
             "SELECT public_name, upstream_id, api_format, provider, category, min_tier, is_active,"
             " price_input_per_m, price_output_per_m, price_cache_write_per_m,"
-            " price_cache_read_per_m FROM models ORDER BY public_name"
-        )
+            " price_cache_read_per_m FROM models WHERE public_name = ANY(:names)"
+            " ORDER BY public_name"
+        ),
+        {"names": [m.public_name for m in SEED_MODELS]},
     )
     catalog = {row.public_name: row for row in rows}
     assert set(catalog) == {"claude-haiku-4.5-exp", "gemini-3.1-flash-lite", "glm-4.6"}
