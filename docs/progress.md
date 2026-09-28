@@ -248,3 +248,64 @@ curl -s localhost:8000/app/api/me
 curl -s -X POST localhost:8000/app/api/keys -H 'X-Atheena-CSRF: 1' \
   -H 'content-type: application/json' -d '{"name":"laptop"}'
 ```
+
+## TASK-003 — Ledger dan top-up MVP
+
+Selesai 28 September 2026. Rencana: `tasks/TASK-003.md`.
+
+### Yang dikerjakan
+- **Backend**:
+  - `app/services/ledger.py` (`post_entry`): satu-satunya jalur perubahan saldo. Baris user dikunci (`FOR UPDATE`), lalu `ledger_entries` dan `users.balance_idr` ditulis dalam transaksi yang sama. Proxy (`billing.py`) ikut memakainya.
+  - `app/services/audit.py`: pencatatan audit log.
+  - `app/net.py`: hash IP bersama.
+- **API**:
+  - Member: `GET /app/api/ledger?page&kind=all|credits`, `GET /app/api/topup-info`.
+  - Admin: `GET /app/api/admin/users?q`, `POST /app/api/admin/users/{id}/adjustments` (top-up atau penyesuaian), `GET /app/api/admin/users/{id}/ledger`.
+- **Frontend** (fondasi dashboard untuk TASK-004 dan 005):
+  - React Router, klien API (header CSRF otomatis), format Rupiah dan WIB.
+  - Shell dengan readout saldo, halaman "Akun belum aktif" dan "Sesi berakhir".
+  - Halaman **Top-up** (`/app/topup`) dan halaman admin **Saldo pengguna** (`/app/admin/saldo`).
+- Konfigurasi baru: `TOPUP_WHATSAPP_NUMBER` (default `6282312202002`), `TOPUP_QRIS_PATH` (default `/assets/qris.png`).
+- 15 test baru (142 total).
+
+### Keputusan yang diambil
+- **Nominal**: top-up wajib positif dan catatannya opsional. Penyesuaian boleh kredit atau debit dengan alasan wajib (FR-5.2). Batas per entri Rp 100.000.000 untuk mencegah salah ketik nol.
+  - Penyesuaian debit boleh membuat saldo negatif (koreksi admin), konsisten dengan FR-3.23.
+- **QRIS** adalah file statis `frontend/public/assets/qris.png`. File saat ini **placeholder bertanda "CONTOH, bukan QRIS asli"**; pemilik wajib menggantinya dengan QRIS asli. Path-nya diambil dari API (`/topup-info`), jadi di deploy bisa diganti lewat volume tanpa build ulang (TASK-006).
+- **Pesan WhatsApp** otomatis: "Halo Admin Atheena, saya ingin konfirmasi top-up saldo." + nama + email + nominal + pengingat melampirkan bukti. Tombol nonaktif sampai nominal diisi.
+- **Admin wajib mengonfirmasi** sebelum menyimpan ("Tambah Rp X ke saldo Y?"), dan tombol dikunci selama request berjalan, untuk mencegah klik ganda.
+- **Desain** (PRD §10, skill `frontend-design`):
+  - Palet persis PRD. Biru elektrik hanya untuk aksi utama. Border 1px Gunmetal, tanpa shadow.
+  - Font self-hosted dari npm: Schibsted Grotesk (UI) dan Martian Mono (semua angka, semi-condensed, tabular). Tanpa CDN Google Fonts.
+  - Satu elemen menonjol: readout saldo di rail. Readout berwarna peringatan saat saldo di bawah ambang. Efek chrome hanya di wordmark.
+  - Penomoran hanya di langkah top-up karena memang berurutan.
+  - Di HP, rail menjadi header dengan tab, dan tabel ledger menjadi baris bertumpuk.
+- **Proxy dev Vite** memakai `changeOrigin: false`, supaya header `Host` sampai utuh ke API dan cek CSRF `Origin` lolos. Di produksi, Caddy dan Cloudflare Tunnel juga mempertahankan `Host`.
+
+### Tertunda
+- Upload bukti dan antrean approval (FR-5.4): ditunda sesuai PRD. Tabel `topup_requests` sudah ada.
+- Banner saldo rendah (FR-5.5) dan halaman ringkasan: TASK-004.
+- Manajemen user lengkap (tambah, ubah tier, suspend): TASK-005.
+- **Pemilik**: kirim/unggah gambar QRIS asli untuk menggantikan placeholder.
+
+### Bukti selesai (28 September 2026, VM 999)
+- `make test` → **142 passed**. `make lint` → ruff, format, mypy, dan oxlint bersih (0 warning). `npm run build` (tsc + vite) sukses.
+- Test utama (`test_ledger_topup.py`):
+  - Saldo = jumlah ledger; entri tidak valid ditolak.
+  - Top-up admin tercatat dengan `created_by` + audit sebelum/sesudah + hash IP (IP mentah tidak disimpan).
+  - Penyesuaian wajib alasan; member ditolak 403.
+  - **Konkurensi**: 10 top-up admin + 10 request berbayar paralel → saldo akhir tepat Rp 50.000, 21 entri, rantai `balance_after` utuh dalam urutan lock (dijalankan 5× berturut-turut, stabil).
+  - Ledger member privat, terpaginasi, bisa difilter.
+  - Pencarian admin aman dari wildcard `%`.
+- **Uji manual end-to-end** di DB dev (API `:8000` bypass sebagai admin seed, `vite preview` `:4173`, Chromium headless via Playwright):
+  - Halaman top-up: nominal 150.000 → link `https://wa.me/6282312202002?text=...` berisi `Nama: Admin | Email: <email admin> | Nominal: Rp 150.000`.
+  - Halaman admin: pilih user → Tambah saldo → konfirmasi → "Tersimpan. Saldo Admin sekarang Rp 150.000."
+  - HP 390 px: tidak ada scroll horizontal (`scrollWidth > innerWidth` = false).
+  - Skrip dijalankan 4×, jadi saldo uji Rp 600.000 **dikoreksi dengan entri penyesuaian** −600.000 ("Membatalkan top-up uji manual TASK-003"), tanpa menghapus baris. Isi DB setelahnya: 4 × `topup` + 1 × `adjustment`; `users.balance_idr` = jumlah ledger = 0; 5 baris `audit_logs` (`balance.topup` ×4, `balance.adjustment`) dengan sebelum/sesudah dan `ip_hash`.
+
+### Cara reproduksi
+```bash
+make test && make lint && make frontend
+APP_ENV=dev DEV_AUTH_EMAIL=<email-admin> make run   # terminal 1
+cd frontend && npm run dev                          # terminal 2, buka http://localhost:5173/app/topup
+```
