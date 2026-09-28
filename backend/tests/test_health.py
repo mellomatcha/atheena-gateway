@@ -2,6 +2,7 @@ import uuid
 
 import httpx
 import respx
+from pydantic import SecretStr
 
 from tests.conftest import FAKE_UPSTREAM, FAKE_UPSTREAM_KEY, ClientFactory
 
@@ -69,6 +70,22 @@ async def test_readyz_upstream_rejects_key(
     upstream = response.json()["checks"]["upstream"]
     assert upstream == {"ok": False, "error": "upstream returned HTTP 401"}
     assert "secret upstream detail" not in response.text
+
+
+@respx.mock(assert_all_mocked=False, assert_all_called=False)
+async def test_readyz_upstream_key_missing(
+    client_factory: ClientFactory, respx_mock: respx.MockRouter
+) -> None:
+    route = respx_mock.get(MODELS_URL).mock(return_value=httpx.Response(200, json={"data": []}))
+    async with client_factory(upstream_api_key=SecretStr("")) as client:
+        response = await client.get("/readyz")
+
+    assert response.status_code == 503
+    assert response.json()["checks"]["upstream"] == {
+        "ok": False,
+        "error": "UPSTREAM_API_KEY is not set",
+    }
+    assert not route.called
 
 
 @respx.mock(assert_all_mocked=False)

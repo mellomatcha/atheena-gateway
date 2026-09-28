@@ -36,9 +36,12 @@ async def check_redis(redis: Redis) -> None:
 
 
 async def check_upstream(client: httpx.AsyncClient, settings: Settings) -> None:
+    api_key = settings.upstream_api_key.get_secret_value()
+    if not api_key:
+        raise CheckFailedError("UPSTREAM_API_KEY is not set")
     response = await client.get(
         f"{settings.upstream_base_url.rstrip('/')}/models",
-        headers={"Authorization": f"Bearer {settings.upstream_api_key.get_secret_value()}"},
+        headers={"Authorization": f"Bearer {api_key}"},
     )
     if response.status_code != 200:
         # Status code only; the upstream body is never echoed.
