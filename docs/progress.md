@@ -72,3 +72,53 @@ make dev && make migrate && make seed
 make test && make lint
 make run   # terminal lain: curl -s localhost:8000/readyz
 ```
+
+## OPS-001 — Install 9Router fresh di CT 300
+
+Selesai 28 September 2026. Detail operasional: `docs/ops/9router-ct300.md`.
+
+### Yang dikerjakan
+- Clone `decolua/9router` ke `/home/router/9router`, checkout tag `v0.5.91` (`f01fb90`), `npm install`, `npm run build` (puncak RSS ±2,0 GB, 43 detik, swap tidak terpakai).
+- `.env` mode 600: `PORT`, `HOSTNAME`, `NEXT_PUBLIC_BASE_URL`, `BASE_URL`, `DATA_DIR`, `INITIAL_PASSWORD` (diisi dari `~/.9router-initial-password` di sisi server, tidak pernah ditampilkan).
+- pm2: `pm2 start npm --name 9router -- start -- --port 20128`, lalu `pm2 save`.
+- Prosedur backup online SQLite lewat `node:sqlite` diuji (`integrity_check: ok`). Lockfile diarsipkan di `~/9router-locks/`.
+- Dokumen ops ditulis; PRD §9.2, §12, dan R11 diperbarui.
+- Tidak ada provider, akun, atau key yang ditambahkan. Tidak ada perubahan di luar `/home/router`.
+
+### Keputusan yang diambil (disetujui pemilik)
+- **Tag v0.5.91**, bukan v0.5.35. v0.5.35 adalah GitHub Release "latest", tapi tag terbarunya v0.5.91.
+- **`npm install`, bukan `npm ci`**, karena upstream tidak menyertakan `package-lock.json` (ada di `.gitignore` mereka). Lockfile hasil install disimpan.
+- **`-- --port 20128`**: script `start` memaksa `--port 20127`, sehingga `PORT` di env diabaikan (terbukti listen di 20127 pada percobaan pertama).
+- `BASE_URL` diisi selain `NEXT_PUBLIC_BASE_URL`, karena runtime server memprioritaskan `BASE_URL`.
+
+### Temuan
+- `HOSTNAME=0.0.0.0` tidak berpengaruh. Server bind ke `*:20128` (IPv4 dan IPv6), jadi firewall CT 300 harus memfilter keduanya.
+- CT 300 tidak punya `sqlite3`, `make`, dan `g++`. `better-sqlite3` tetap jalan memakai prebuilt binary; backup memakai `node:sqlite`.
+- `~/.9router` awalnya tidak ada (bukan sekadar kosong). Folder itu dibuat oleh 9Router saat start.
+- `machine-id` tertanam di API key 9Router, jadi wajib ikut di-backup.
+- Observability 9Router (`requestDetails`, menyimpan potongan request/response) default mati. Harus tetap mati (PRD §4.3).
+- `data.sqlite` dan direktori `~/.9router/db` dibuat 9Router dengan izin 644/775 (umask default user `router`).
+
+### Ditunda / perlu tindakan pemilik
+- **Root**: `sudo env PATH=$PATH:/usr/bin /usr/lib/node_modules/pm2/bin/pm2 startup systemd -u router --hp /home/router` agar pm2 hidup lagi setelah reboot.
+- Firewall CT 300 (PRD §11): tutup lagi akses sementara, izinkan hanya CT 301 dan admin, termasuk IPv6.
+- Pertimbangkan `chmod 700 ~/.9router` dan `chmod 600 ~/.9router/db/data.sqlite` (di luar scope, belum dilakukan).
+- Jadwal backup otomatis (cron) dan penyalinan ke disk lain: tahap ops/runbook.
+- CLAUDE.md dan PRD §14 masih menyebut upstream development `10.10.10.13:3000` dan "CT 300 tidak boleh diakses". Perlu diperbarui saat cutover.
+- Isi provider dan akun di dashboard, uji CodeBuddy (R11), lalu cutover dari CT 110.
+
+### Bukti selesai (28 September 2026)
+- `ssh ct300 'ss -ltnp | grep 20128'` → `LISTEN 0 511 *:20128 *:* users:(("next-server (v1",pid=16725,fd=21))`
+- Dari VM 999: `/` → `307` (→ `/dashboard` → `307` → `/login`), `/v1/models` → `401`.
+- `pm2 restart 9router` → `online`, ↺ 1, tetap `*:20128`; `/` → `307`, `/v1/models` → `401`.
+- `pm2 save` → dump berisi `9router /usr/bin/npm ["start","--","--port","20128"] /home/router/9router`.
+- `stat .env` → `600 router`; key: `PORT HOSTNAME NEXT_PUBLIC_BASE_URL BASE_URL DATA_DIR INITIAL_PASSWORD`.
+- Log pm2: `Driver: better-sqlite3`; `PRAGMA journal_mode` → `wal`.
+
+### Cara reproduksi
+```bash
+ssh ct300 'pm2 ls; ss -ltnp | grep 20128'
+curl -s -o /dev/null -w '%{http_code}\n' http://10.10.10.30:20128/
+curl -s -o /dev/null -w '%{http_code}\n' http://10.10.10.30:20128/v1/models
+ssh ct300 'pm2 restart 9router && sleep 10 && ss -ltnp | grep 20128'
+```
