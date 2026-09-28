@@ -6,6 +6,7 @@ using the rolled-back `db` connection. Every name is unique per call to keep tes
 
 import uuid
 from collections.abc import AsyncIterator
+from datetime import datetime
 from contextlib import asynccontextmanager
 from dataclasses import dataclass
 from decimal import Decimal
@@ -140,6 +141,53 @@ class GatewayData:
                 ),
                 {"id": new_id(), "slug": slug, "oo": official_only},
             )
+
+    async def model_id(self, public_name: str) -> uuid.UUID:
+        return await self.scalar(  # type: ignore[no-any-return]
+            "SELECT id FROM models WHERE public_name = :n", n=public_name
+        )
+
+    async def request(
+        self,
+        *,
+        user_id: uuid.UUID,
+        started_at: datetime,
+        model: str,
+        api_key_id: uuid.UUID | None = None,
+        project: str | None = None,
+        status_code: int = 200,
+        tokens: tuple[int, int, int, int] = (100, 50, 0, 0),
+        cost_idr: int = 0,
+    ) -> uuid.UUID:
+        """Insert a request row directly, for usage views that need precise timestamps."""
+        request_id = new_id()
+        async with self.engine.begin() as conn:
+            await conn.execute(
+                text(
+                    "INSERT INTO requests (id, request_id, started_at, user_id, api_key_id,"
+                    " model_id, model_public_name, project, endpoint, status_code, input_tokens,"
+                    " output_tokens, cache_write_tokens, cache_read_tokens, cost_idr)"
+                    " VALUES (:id, :rid, :started, :user_id, :key_id,"
+                    " (SELECT id FROM models WHERE public_name = :model), :model, :project,"
+                    " '/v1/chat/completions', :status, :i, :o, :cw, :cr, :cost)"
+                ),
+                {
+                    "id": new_id(),
+                    "rid": request_id,
+                    "started": started_at,
+                    "user_id": user_id,
+                    "key_id": api_key_id,
+                    "model": model,
+                    "project": project,
+                    "status": status_code,
+                    "i": tokens[0],
+                    "o": tokens[1],
+                    "cw": tokens[2],
+                    "cr": tokens[3],
+                    "cost": cost_idr,
+                },
+            )
+        return request_id
 
     async def fetch(self, sql: str, **params: Any) -> list[Any]:
         async with self.engine.connect() as conn:
