@@ -15,7 +15,8 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from app.gateway.usage import Usage
 from app.ids import new_id
-from app.models import ApiKey, LedgerEntry, RequestLog, User
+from app.models import ApiKey, RequestLog
+from app.services.ledger import post_entry
 
 # Daily caps reset at midnight Western Indonesia Time (UTC+7, no daylight saving).
 WIB = timezone(timedelta(hours=7), "WIB")
@@ -68,24 +69,12 @@ async def record_request(
         if rec.cost_idr > 0:
             if rec.user_id is None:
                 raise ValueError("a billed request needs a user")
-            balance = await session.scalar(
-                select(User.balance_idr).where(User.id == rec.user_id).with_for_update()
-            )
-            if balance is None:
-                raise LookupError("user not found")
-            new_balance = balance - rec.cost_idr
-            await session.execute(
-                update(User).where(User.id == rec.user_id).values(balance_idr=new_balance)
-            )
-            await session.execute(
-                insert(LedgerEntry).values(
-                    id=new_id(),
-                    user_id=rec.user_id,
-                    type="usage",
-                    amount_idr=-rec.cost_idr,
-                    balance_after_idr=new_balance,
-                    request_id=rec.request_id,
-                )
+            await post_entry(
+                session,
+                user_id=rec.user_id,
+                entry_type="usage",
+                amount_idr=-rec.cost_idr,
+                request_id=rec.request_id,
             )
         await session.execute(
             insert(RequestLog).values(

@@ -1,7 +1,5 @@
 """Client-facing gateway endpoints: /v1/models, /v1/chat/completions, /v1/messages."""
 
-import hashlib
-import hmac
 import json
 import logging
 import time
@@ -36,6 +34,7 @@ from app.gateway.settings_store import load_gateway_settings
 from app.gateway.usage import Prices, UsageTracker, compute_cost_idr, parse_json
 from app.logs import request_id_var
 from app.models import AIModel, Project, User
+from app.net import client_ip_hash
 from app.services.catalog import allowed_models
 
 logger = logging.getLogger(__name__)
@@ -51,16 +50,6 @@ DEFAULT_ANTHROPIC_VERSION = "2023-06-01"
 def _request_uuid() -> uuid.UUID:
     value = request_id_var.get()
     return uuid.UUID(value) if value else uuid.uuid4()
-
-
-def _client_ip_hash(request: Request, settings: Settings) -> str | None:
-    ip = request.headers.get("cf-connecting-ip") or (request.client.host if request.client else "")
-    if not ip:
-        return None
-    secret = settings.ip_hash_secret.get_secret_value().encode()
-    if secret:
-        return hmac.new(secret, ip.encode(), hashlib.sha256).hexdigest()
-    return hashlib.sha256(ip.encode()).hexdigest()
 
 
 def _project(request: Request) -> str | None:
@@ -147,14 +136,13 @@ async def messages(request: Request) -> Response:
 
 async def _proxy(request: Request, api_format: ApiFormat, upstream_path: str) -> Response:
     state = request.app.state
-    settings: Settings = state.settings
     rec = RequestRecord(
         request_id=_request_uuid(),
         endpoint=f"/v1{upstream_path}",
         started_at=datetime.now(UTC),
         status_code=0,
         project=_project(request),
-        client_ip_hash=_client_ip_hash(request, settings),
+        client_ip_hash=client_ip_hash(request),
         user_agent=(request.headers.get("user-agent") or "")[:USER_AGENT_MAX] or None,
     )
     started = time.perf_counter()
