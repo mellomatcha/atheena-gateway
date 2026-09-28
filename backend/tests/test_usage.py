@@ -5,6 +5,7 @@ import io
 import uuid
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
+from dataclasses import dataclass
 from datetime import UTC, date, datetime, timedelta
 
 import httpx
@@ -36,11 +37,20 @@ async def as_user(
         yield client
 
 
-async def seed_usage(data: GatewayData) -> dict[str, object]:
+@dataclass(frozen=True)
+class Seeded:
+    user: uuid.UUID
+    key_a_id: uuid.UUID
+    key_b_id: uuid.UUID
+    m1: str
+    m2: str
+
+
+async def seed_usage(data: GatewayData) -> Seeded:
     """Two users, two models, two keys, a project, successes and failures around WIB midnight."""
     user = await data.user()
     other = await data.user()
-    key_a, key_a_id = await data.key(user)
+    _, key_a_id = await data.key(user)
     _, key_b_id = await data.key(user)
     m1 = await data.model()
     m2 = await data.model()
@@ -75,14 +85,7 @@ async def seed_usage(data: GatewayData) -> dict[str, object]:
         await data.request(user_id=user, **row)  # type: ignore[arg-type]
     # Another user's usage on the same days must never show up.
     await data.request(user_id=other, started_at=wib(2026, 8, 11, 10, 0), model=m1, cost_idr=9999)
-    return {
-        "user": user,
-        "key_a": key_a,
-        "key_a_id": key_a_id,
-        "key_b_id": key_b_id,
-        "m1": m1,
-        "m2": m2,
-    }
+    return Seeded(user=user, key_a_id=key_a_id, key_b_id=key_b_id, m1=m1, m2=m2)
 
 
 RANGE = {"from": "2026-08-09", "to": "2026-08-12"}
@@ -91,7 +94,7 @@ RANGE = {"from": "2026-08-09", "to": "2026-08-12"}
 async def test_timeseries_uses_wib_days_and_fills_gaps(gateway_factory: ClientFactory) -> None:
     async with gateway_data() as data:
         s = await seed_usage(data)
-        async with as_user(gateway_factory, s["user"]) as client:  # type: ignore[arg-type]
+        async with as_user(gateway_factory, s.user) as client:
             idr = (await client.get("/app/api/usage/timeseries", params=RANGE)).json()
             tok = (
                 await client.get("/app/api/usage/timeseries", params={**RANGE, "unit": "token"})
@@ -115,14 +118,14 @@ async def test_chart_totals_match_request_log(gateway_factory: ClientFactory) ->
         s = await seed_usage(data)
         filters = [
             {},
-            {"model": s["m1"]},
-            {"key": str(s["key_b_id"])},
+            {"model": s.m1},
+            {"key": str(s.key_b_id)},
             {"project": "helios"},
             {"project": "none"},
             {"status": "success"},
             {"status": "failed"},
         ]
-        async with as_user(gateway_factory, s["user"]) as client:  # type: ignore[arg-type]
+        async with as_user(gateway_factory, s.user) as client:
             for extra in filters:
                 params = {**RANGE, **extra}
                 series = (await client.get("/app/api/usage/timeseries", params=params)).json()
@@ -137,15 +140,15 @@ async def test_chart_totals_match_request_log(gateway_factory: ClientFactory) ->
 async def test_filters_select_the_right_rows(gateway_factory: ClientFactory) -> None:
     async with gateway_data() as data:
         s = await seed_usage(data)
-        async with as_user(gateway_factory, s["user"]) as client:  # type: ignore[arg-type]
+        async with as_user(gateway_factory, s.user) as client:
 
             async def costs(**extra: str) -> list[int]:
                 response = await client.get("/app/api/usage/requests", params={**RANGE, **extra})
                 return sorted(r["cost_idr"] for r in response.json()["items"])
 
             assert await costs() == [0, 100, 200, 400]
-            assert await costs(model=s["m1"]) == [100, 200]  # type: ignore[arg-type]
-            assert await costs(key=str(s["key_b_id"])) == [0, 400]
+            assert await costs(model=s.m1) == [100, 200]
+            assert await costs(key=str(s.key_b_id)) == [0, 400]
             assert await costs(project="helios") == [200]
             assert await costs(project="none") == [0, 100, 400]
             assert await costs(status="failed") == [0]
@@ -284,7 +287,7 @@ async def test_facets_and_config(gateway_factory: ClientFactory) -> None:
 async def test_rollup_matches_requests_and_is_idempotent() -> None:
     async with gateway_data() as data:
         s = await seed_usage(data)
-        user = s["user"]
+        user = s.user
         days = [date(2026, 8, 10), date(2026, 8, 11), date(2026, 8, 12)]
         async with data.engine.begin() as conn:
             await rollup_days(conn, days)
@@ -308,8 +311,8 @@ async def test_rollup_matches_requests_and_is_idempotent() -> None:
 
         # A late request (e.g. a stream finishing after midnight) is folded in on the next run.
         await data.request(
-            user_id=user, started_at=wib(2026, 8, 11, 12, 30), model=s["m2"], cost_idr=50
-        )  # type: ignore[arg-type]
+            user_id=user, started_at=wib(2026, 8, 11, 12, 30), model=s.m2, cost_idr=50
+        )
         async with data.engine.begin() as conn:
             await rollup_days(conn, days)
         updated = await data.fetch(

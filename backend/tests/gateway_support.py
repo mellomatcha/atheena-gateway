@@ -6,9 +6,9 @@ using the rolled-back `db` connection. Every name is unique per call to keep tes
 
 import uuid
 from collections.abc import AsyncIterator
-from datetime import datetime
 from contextlib import asynccontextmanager
 from dataclasses import dataclass
+from datetime import datetime
 from decimal import Decimal
 from typing import Any
 
