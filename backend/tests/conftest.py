@@ -83,3 +83,40 @@ def client_factory() -> ClientFactory:
                 yield client
 
     return factory
+
+
+@pytest.fixture(scope="session")
+def fake_upstream_url() -> Iterator[str]:
+    """Base URL (with /v1) of the fake upstream served on a real local port."""
+    from tests.fake_upstream.app import app as fake_app
+    from tests.fake_upstream.server import serve
+
+    with serve(fake_app) as base:
+        yield f"{base}/v1"
+
+
+@pytest.fixture(scope="session", autouse=True)
+def clean_test_redis() -> None:
+    """Start every session with an empty test Redis database (rate limits, key cache)."""
+    import redis as sync_redis
+
+    sync_redis.Redis.from_url(TEST_REDIS_URL).flushdb()
+
+
+# Short heartbeat timings so slow-TTFT scenarios run in well under a second each.
+FAST_HEARTBEATS: dict[str, object] = {
+    "stream_heartbeat_interval_s": 0.2,
+    "nonstream_heartbeat_delay_s": 0.3,
+    "nonstream_heartbeat_interval_s": 0.2,
+}
+
+
+@pytest.fixture
+def gateway_factory(client_factory: ClientFactory, fake_upstream_url: str) -> ClientFactory:
+    """Client factory for an app pointed at the fake upstream with fast heartbeats."""
+
+    def factory(**overrides: object) -> AbstractAsyncContextManager[httpx.AsyncClient]:
+        values = {"upstream_base_url": fake_upstream_url, **FAST_HEARTBEATS, **overrides}
+        return client_factory(**values)
+
+    return factory
