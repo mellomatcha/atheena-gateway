@@ -35,6 +35,11 @@ class Settings(BaseSettings):
     # Application Audience (AUD) tag of the portal application.
     cf_access_team_domain: str = ""
     cf_access_aud: str = ""
+    # Top-up (FR-5.3): WhatsApp number for payment confirmations and the public path of the
+    # static QRIS image. Both can change without rebuilding the frontend.
+    topup_whatsapp_number: str = "6282312202002"
+    topup_qris_path: str = "/assets/qris.png"
+
     # Development only: treat every dashboard request as this email. Refused in production.
     dev_auth_email: str | None = None
 
