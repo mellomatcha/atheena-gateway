@@ -69,7 +69,10 @@ async def test_ledger_rejects_truncate(db: AsyncConnection) -> None:
         await db.execute(text("TRUNCATE ledger_entries CASCADE"))
     await savepoint.rollback()
 
-    assert await db.scalar(text("SELECT count(*) FROM ledger_entries")) == 1
+    count = await db.scalar(
+        text("SELECT count(*) FROM ledger_entries WHERE user_id = :id"), {"id": user_id}
+    )
+    assert count == 1
 
 
 async def test_ledger_allows_inserts(db: AsyncConnection) -> None:

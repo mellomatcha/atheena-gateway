@@ -59,14 +59,17 @@ async def test_requests_rows_route_to_monthly_partition(db: AsyncConnection) -> 
 
 
 async def test_requests_outside_created_months_fall_into_default(db: AsyncConnection) -> None:
+    row_id = new_id()
     await db.execute(
         text(
             "INSERT INTO requests (id, request_id, started_at, endpoint, status_code)"
             " VALUES (:id, :request_id, '2030-01-15T00:00:00Z', '/v1/messages', 200)"
         ),
-        {"id": new_id(), "request_id": new_id()},
+        {"id": row_id, "request_id": new_id()},
     )
-    partition = await db.scalar(text("SELECT tableoid::regclass::text FROM requests"))
+    partition = await db.scalar(
+        text("SELECT tableoid::regclass::text FROM requests WHERE id = :id"), {"id": row_id}
+    )
     assert partition == "requests_default"
 
 
