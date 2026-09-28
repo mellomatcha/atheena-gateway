@@ -39,6 +39,8 @@ class Settings(BaseSettings):
     # static QRIS image. Both can change without rebuilding the frontend.
     topup_whatsapp_number: str = "6282312202002"
     topup_qris_path: str = "/assets/qris.png"
+    # Base URL users paste into their tools (FR-3.0, FR-6.7 quickstart snippets).
+    public_api_base_url: str = "https://api.atheena.online/v1"
 
     # Development only: treat every dashboard request as this email. Refused in production.
     dev_auth_email: str | None = None

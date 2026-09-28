@@ -2,7 +2,7 @@
 
 from fastapi import APIRouter, Depends
 
-from app.portal import catalog, keys, ledger, me
+from app.portal import catalog, keys, ledger, me, usage
 from app.portal.admin import balances
 from app.portal.deps import csrf_protect
 
@@ -11,4 +11,5 @@ router.include_router(me.router)
 router.include_router(keys.router)
 router.include_router(catalog.router)
 router.include_router(ledger.router)
+router.include_router(usage.router)
 router.include_router(balances.router, prefix="/admin")
