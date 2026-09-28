@@ -2,7 +2,7 @@ from functools import lru_cache
 from pathlib import Path
 from typing import Literal
 
-from pydantic import SecretStr
+from pydantic import SecretStr, field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 # The .env file lives at the repository root, next to .env.example.
@@ -30,6 +30,42 @@ class Settings(BaseSettings):
 
     # Keyed hash for client IPs stored in requests.client_ip_hash; empty means a plain SHA-256.
     ip_hash_secret: SecretStr = SecretStr("")
+
+    # Cloudflare Access (FR-1.2): team domain such as "atheena.cloudflareaccess.com" and the
+    # Application Audience (AUD) tag of the portal application.
+    cf_access_team_domain: str = ""
+    cf_access_aud: str = ""
+    # Development only: treat every dashboard request as this email. Refused in production.
+    dev_auth_email: str | None = None
+
+    @field_validator("app_env", mode="before")
+    @classmethod
+    def _env_aliases(cls, value: object) -> object:
+        aliases = {"dev": "development", "prod": "production"}
+        return aliases.get(value, value) if isinstance(value, str) else value
+
+    @field_validator("dev_auth_email", mode="before")
+    @classmethod
+    def _blank_is_none(cls, value: object) -> object:
+        return None if isinstance(value, str) and not value.strip() else value
+
+    @model_validator(mode="after")
+    def _production_requires_real_auth(self) -> "Settings":
+        if self.app_env == "production":
+            if self.dev_auth_email:
+                raise ValueError("DEV_AUTH_EMAIL must not be set when APP_ENV=production")
+            if not self.cf_access_team_domain or not self.cf_access_aud:
+                raise ValueError(
+                    "CF_ACCESS_TEAM_DOMAIN and CF_ACCESS_AUD are required when APP_ENV=production"
+                )
+        return self
+
+    @property
+    def dev_auth_bypass_email(self) -> str | None:
+        """The bypass email, only ever returned in development."""
+        if self.app_env == "development" and self.dev_auth_email:
+            return self.dev_auth_email.strip().lower()
+        return None
 
 
 @lru_cache
