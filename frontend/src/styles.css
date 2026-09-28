@@ -1,0 +1,698 @@
+/* Atheena dashboard. PRD §10: black base, metal accents, one electric blue for primary actions.
+   Flat and calm: 1px gunmetal rules, no shadows, numbers always in the monospace face. */
+
+:root {
+  --void: #0a0a0b;
+  --graphite: #17181b;
+  --gunmetal: #2a2d33;
+  --chrome: #c8ccd2;
+  --steel: #8a9099;
+  --electric: #2e5bff;
+  --ice: #9ec5ff;
+  /* Only for error text; kept muted so the blue stays the single accent. */
+  --fault: #e0737b;
+
+  --font-ui: 'Schibsted Grotesk', system-ui, sans-serif;
+  --font-num: 'Martian Mono Variable', ui-monospace, monospace;
+
+  /* Type scale, ratio ~1.25 from a 15px body. */
+  --t-sm: 0.8125rem;
+  --t-base: 0.9375rem;
+  --t-md: 1.125rem;
+  --t-lg: 1.375rem;
+  --t-xl: 1.75rem;
+  --t-readout: 2.25rem;
+
+  --radius-control: 4px;
+  --radius-panel: 6px;
+  --rail-width: 15rem;
+
+  color-scheme: dark;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  background: var(--void);
+  color: var(--chrome);
+  font-family: var(--font-ui);
+  font-size: 100%;
+  line-height: 1.5;
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  margin: 0;
+  min-height: 100dvh;
+  font-size: var(--t-base);
+}
+
+h1,
+h2,
+h3 {
+  margin: 0;
+  font-weight: 600;
+  line-height: 1.2;
+  letter-spacing: -0.01em;
+}
+
+h1 {
+  font-size: var(--t-xl);
+}
+
+h2 {
+  font-size: var(--t-md);
+}
+
+p {
+  margin: 0;
+}
+
+a {
+  color: var(--ice);
+}
+
+:focus-visible {
+  outline: 2px solid var(--ice);
+  outline-offset: 2px;
+}
+
+.num {
+  font-family: var(--font-num);
+  font-stretch: 87.5%;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
+}
+
+.muted {
+  color: var(--steel);
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+/* ---------- Shell ---------- */
+
+.shell {
+  display: grid;
+  grid-template-columns: var(--rail-width) minmax(0, 1fr);
+  min-height: 100dvh;
+}
+
+.rail {
+  position: sticky;
+  top: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+  height: 100dvh;
+  padding: 1.5rem 1.25rem;
+  border-right: 1px solid var(--gunmetal);
+}
+
+.rail__top {
+  display: grid;
+  gap: 1.75rem;
+}
+
+.wordmark {
+  font-size: var(--t-lg);
+  font-weight: 800;
+  letter-spacing: -0.04em;
+  text-decoration: none;
+  /* The one chrome effect allowed in the dashboard (PRD §10: logo only). */
+  background: linear-gradient(180deg, #f2f4f7 0%, var(--chrome) 45%, #6d737c 55%, var(--chrome) 100%);
+  background-clip: text;
+  color: transparent;
+}
+
+.readout {
+  display: grid;
+  gap: 0.25rem;
+  padding-bottom: 1.5rem;
+  border-bottom: 1px solid var(--gunmetal);
+}
+
+.readout__label {
+  font-size: var(--t-sm);
+  color: var(--steel);
+}
+
+.readout__value {
+  display: flex;
+  align-items: baseline;
+  gap: 0.4rem;
+  font-size: var(--t-readout);
+  line-height: 1;
+  color: var(--chrome);
+}
+
+.readout__currency {
+  font-size: var(--t-base);
+  color: var(--steel);
+}
+
+.readout__value[data-low='true'] {
+  color: var(--fault);
+}
+
+.nav {
+  display: grid;
+  gap: 0.125rem;
+}
+
+.nav__group {
+  margin: 1.25rem 0 0.375rem;
+  font-size: var(--t-sm);
+  color: var(--steel);
+}
+
+.nav a {
+  display: block;
+  padding: 0.5rem 0.625rem;
+  border-radius: var(--radius-control);
+  color: var(--chrome);
+  text-decoration: none;
+}
+
+.nav a:hover {
+  background: var(--graphite);
+}
+
+.nav a[aria-current='page'] {
+  background: var(--graphite);
+  box-shadow: inset 2px 0 0 var(--ice);
+}
+
+.rail__user {
+  margin-top: auto;
+  font-size: var(--t-sm);
+  color: var(--steel);
+  overflow-wrap: anywhere;
+}
+
+.main {
+  min-width: 0;
+  padding: 2.5rem clamp(1rem, 4vw, 3.5rem) 4rem;
+}
+
+.page {
+  display: grid;
+  gap: 2.5rem;
+  max-width: 68rem;
+}
+
+.page__head {
+  display: grid;
+  gap: 0.5rem;
+  max-width: 44rem;
+}
+
+@media (max-width: 52rem) {
+  .shell {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .rail {
+    position: static;
+    height: auto;
+    gap: 1rem;
+    padding: 1rem;
+    border-right: 0;
+    border-bottom: 1px solid var(--gunmetal);
+  }
+
+  .rail__top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+  }
+
+  .readout {
+    padding-bottom: 0;
+    border-bottom: 0;
+    text-align: right;
+  }
+
+  .readout__value {
+    justify-content: flex-end;
+    font-size: var(--t-lg);
+  }
+
+  .nav {
+    display: flex;
+    gap: 0.25rem;
+    overflow-x: auto;
+    margin: 0 -1rem;
+    padding: 0 1rem;
+  }
+
+  .nav__group {
+    display: none;
+  }
+
+  .nav a {
+    white-space: nowrap;
+  }
+
+  .rail__user {
+    display: none;
+  }
+
+  .main {
+    padding-top: 1.5rem;
+  }
+}
+
+/* ---------- Controls ---------- */
+
+.button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  min-height: 2.5rem;
+  padding: 0 1rem;
+  border: 1px solid var(--gunmetal);
+  border-radius: var(--radius-control);
+  background: transparent;
+  color: var(--chrome);
+  font: inherit;
+  font-weight: 500;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.button:hover {
+  border-color: var(--steel);
+}
+
+.button--primary {
+  border-color: var(--electric);
+  background: var(--electric);
+  color: #fff;
+}
+
+.button--primary:hover {
+  border-color: var(--ice);
+}
+
+.button:disabled,
+.button[aria-disabled='true'] {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.field {
+  display: grid;
+  gap: 0.375rem;
+}
+
+.field__label {
+  font-size: var(--t-sm);
+  color: var(--steel);
+}
+
+.input {
+  width: 100%;
+  min-height: 2.5rem;
+  padding: 0 0.75rem;
+  border: 1px solid var(--gunmetal);
+  border-radius: var(--radius-control);
+  background: var(--void);
+  color: var(--chrome);
+  font: inherit;
+}
+
+.input:hover {
+  border-color: var(--steel);
+}
+
+textarea.input {
+  min-height: 4.5rem;
+  padding: 0.5rem 0.75rem;
+  resize: vertical;
+}
+
+.input--amount {
+  font-family: var(--font-num);
+  font-stretch: 87.5%;
+  font-size: var(--t-md);
+  font-variant-numeric: tabular-nums;
+}
+
+.segmented {
+  display: inline-flex;
+  border: 1px solid var(--gunmetal);
+  border-radius: var(--radius-control);
+}
+
+.segmented button {
+  min-height: 2.25rem;
+  padding: 0 0.875rem;
+  border: 0;
+  background: transparent;
+  color: var(--steel);
+  font: inherit;
+  cursor: pointer;
+}
+
+.segmented button + button {
+  border-left: 1px solid var(--gunmetal);
+}
+
+.segmented button[aria-pressed='true'] {
+  background: var(--graphite);
+  color: var(--chrome);
+}
+
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.chip {
+  min-height: 2rem;
+  padding: 0 0.75rem;
+  border: 1px solid var(--gunmetal);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--chrome);
+  font-family: var(--font-num);
+  font-stretch: 87.5%;
+  font-size: var(--t-sm);
+  cursor: pointer;
+}
+
+.chip:hover {
+  border-color: var(--steel);
+}
+
+.notice {
+  padding: 0.75rem 1rem;
+  border: 1px solid var(--gunmetal);
+  border-radius: var(--radius-control);
+  background: var(--graphite);
+}
+
+.notice--error {
+  border-color: color-mix(in srgb, var(--fault) 55%, var(--gunmetal));
+  color: var(--fault);
+}
+
+.notice--ok {
+  border-color: color-mix(in srgb, var(--ice) 45%, var(--gunmetal));
+}
+
+/* ---------- Panels and tables ---------- */
+
+.panel {
+  border: 1px solid var(--gunmetal);
+  border-radius: var(--radius-panel);
+  background: var(--graphite);
+}
+
+.section {
+  display: grid;
+  gap: 1rem;
+}
+
+.section__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.table-wrap {
+  overflow-x: auto;
+  border: 1px solid var(--gunmetal);
+  border-radius: var(--radius-panel);
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--t-sm);
+}
+
+.table th {
+  padding: 0.625rem 0.875rem;
+  border-bottom: 1px solid var(--gunmetal);
+  color: var(--steel);
+  font-weight: 500;
+  text-align: left;
+  white-space: nowrap;
+}
+
+.table td {
+  padding: 0.625rem 0.875rem;
+  border-bottom: 1px solid var(--gunmetal);
+  vertical-align: top;
+}
+
+.table tr:last-child td {
+  border-bottom: 0;
+}
+
+.table .right {
+  text-align: right;
+}
+
+.table tbody tr[data-selectable='true'] {
+  cursor: pointer;
+}
+
+.table tbody tr[data-selectable='true']:hover,
+.table tbody tr[aria-selected='true'] {
+  background: var(--graphite);
+}
+
+.amount--credit {
+  color: var(--ice);
+}
+
+.pager {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  font-size: var(--t-sm);
+}
+
+.empty {
+  padding: 2rem 1rem;
+  color: var(--steel);
+  text-align: center;
+}
+
+/* ---------- Status pages ---------- */
+
+.status-page {
+  display: grid;
+  place-content: center;
+  gap: 1rem;
+  min-height: 100dvh;
+  padding: 2rem 1rem;
+  max-width: 34rem;
+  margin: 0 auto;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    transition: none !important;
+    animation: none !important;
+  }
+}
+
+/* ---------- Top-up ---------- */
+
+.topup {
+  display: grid;
+  grid-template-columns: minmax(14rem, 20rem) minmax(0, 1fr);
+  gap: clamp(1.5rem, 4vw, 3.5rem);
+  align-items: start;
+}
+
+.topup__qris {
+  margin: 0;
+  padding: 1rem;
+  border-radius: var(--radius-panel);
+  /* QR codes need a light, high-contrast field to scan reliably. */
+  background: #fff;
+}
+
+.topup__qris img {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.topup__qris-missing {
+  display: grid;
+  place-items: center;
+  aspect-ratio: 1;
+  padding: 1rem;
+  background: var(--graphite);
+  text-align: center;
+}
+
+.steps {
+  display: grid;
+  gap: 2rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  counter-reset: step;
+  max-width: 34rem;
+}
+
+.step {
+  position: relative;
+  display: grid;
+  gap: 0.75rem;
+  padding-left: 3rem;
+  counter-increment: step;
+}
+
+/* The steps are a real sequence (pay, write amount, confirm), so they are numbered. */
+.step::before {
+  content: counter(step);
+  position: absolute;
+  top: -0.1rem;
+  left: 0;
+  display: grid;
+  place-items: center;
+  width: 2rem;
+  height: 2rem;
+  border: 1px solid var(--gunmetal);
+  border-radius: 50%;
+  color: var(--steel);
+  font-family: var(--font-num);
+  font-size: var(--t-sm);
+}
+
+@media (max-width: 52rem) {
+  .topup {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .topup__qris {
+    max-width: 18rem;
+  }
+}
+
+/* ---------- Admin balance ---------- */
+
+.admin-balance {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr);
+  gap: 2rem;
+  align-items: start;
+}
+
+.user-balance {
+  display: grid;
+  gap: 1.5rem;
+  padding: 1.25rem;
+}
+
+.user-balance__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.user-balance__figure {
+  font-size: var(--t-xl);
+  line-height: 1;
+}
+
+.user-balance__form {
+  display: grid;
+  gap: 1rem;
+  max-width: 28rem;
+}
+
+.confirm {
+  display: grid;
+  gap: 0.75rem;
+  padding: 1rem;
+  border: 1px solid var(--electric);
+  border-radius: var(--radius-control);
+}
+
+@media (max-width: 64rem) {
+  .admin-balance {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.table td.num {
+  white-space: nowrap;
+}
+
+.segmented {
+  justify-self: start;
+}
+
+.ledger__after-label {
+  display: none;
+}
+
+/* Small screens: each ledger entry becomes a two-column block instead of a wide table. */
+@media (max-width: 40rem) {
+  .table--ledger thead {
+    display: none;
+  }
+
+  .table--ledger tr {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 0.125rem 1rem;
+    padding: 0.75rem 0.875rem;
+    border-bottom: 1px solid var(--gunmetal);
+  }
+
+  .table--ledger tr:last-child {
+    border-bottom: 0;
+  }
+
+  .table--ledger td {
+    padding: 0;
+    border: 0;
+  }
+
+  .table--ledger td:nth-child(1) {
+    grid-column: 1 / -1;
+    font-size: 0.75rem;
+  }
+
+  .table--ledger td:nth-child(4) {
+    grid-column: 2;
+  }
+
+  .ledger__after-label {
+    display: inline;
+  }
+
+  .table--ledger .ledger__after {
+    font-size: 0.75rem;
+    color: var(--steel);
+  }
+}
