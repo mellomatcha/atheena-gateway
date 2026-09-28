@@ -48,8 +48,36 @@ class SeedModel:
     price_cache_read_per_m: Decimal = Decimal(0)
 
 
-# Cheap starter catalog from 9Router. Public names carry no provider prefix (FR-4.0).
-SEED_MODELS: tuple[SeedModel, ...] = ()
+# Development catalog: cheap CodeBuddy models from the dev 9Router (CT 110). Public names carry
+# no provider prefix (FR-4.0); the Claude model gets "-exp" so the plain name stays free for the
+# official Anthropic source. api_format "both" relies on 9Router translating formats; verified
+# manually in TASK-001. The production catalog is filled once 9Router on CT 300 is ready.
+SEED_MODELS: tuple[SeedModel, ...] = (
+    SeedModel(
+        public_name="claude-haiku-4.5-exp",
+        upstream_id="cb/claude-haiku-4.5",
+        api_format="both",
+        provider="codebuddy",
+        category="experimental",
+        min_tier="basic",
+    ),
+    SeedModel(
+        public_name="gemini-3.1-flash-lite",
+        upstream_id="cb/gemini-3.1-flash-lite",
+        api_format="both",
+        provider="codebuddy",
+        category="experimental",
+        min_tier="basic",
+    ),
+    SeedModel(
+        public_name="glm-4.6",
+        upstream_id="cb/glm-4.6",
+        api_format="both",
+        provider="codebuddy",
+        category="experimental",
+        min_tier="basic",
+    ),
+)
 
 
 async def seed(conn: AsyncConnection, admin_email: str) -> None:

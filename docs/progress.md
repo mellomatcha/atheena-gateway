@@ -2,7 +2,7 @@
 
 ## TASK-000 — Fondasi repo dan lingkungan development
 
-**Status: sebagian besar selesai; menunggu 3 hal dari pemilik (lihat "Belum selesai").**
+**Status: selesai** (bukti di bagian "Bukti selesai").
 Tanggal: 28 September 2026.
 
 ### Yang dikerjakan
@@ -17,8 +17,8 @@ Tanggal: 28 September 2026.
   - `requests` dipartisi per bulan (batas UTC); fungsi SQL `create_requests_partition(date)`; migrasi membuat bulan ini + 3 bulan ke depan + partisi `requests_default`.
   - Trigger `ledger_entries`: menolak UPDATE, DELETE (per baris) dan TRUNCATE (per statement).
   - Constraint uang: tanda `amount_idr` sesuai jenis (topup/refund > 0, usage ≤ 0), adjustment wajib catatan, harga model ≥ 0.
-- **Seed** (`make seed`, idempoten, tidak menimpa perubahan admin): admin dari `SEED_ADMIN_EMAIL` (role admin, tier advanced, aktif), `member.contoh@example.com` (basic, aktif), project `helios` (`official_only = true`), settings default §15.
-- **Kualitas**: pytest + pytest-asyncio (DB `atheena_test`, Redis db 15, upstream palsu via respx), ruff (lint + format), mypy strict. 26 test.
+- **Seed** (`make seed`, idempoten, tidak menimpa perubahan admin): admin dari `SEED_ADMIN_EMAIL` (role admin, tier advanced, aktif), `member.contoh@example.com` (basic, aktif), project `helios` (`official_only = true`), settings default §15 (ditambah rate limit per user 120/menit), dan katalog development 3 model (lihat Keputusan).
+- **Kualitas**: pytest + pytest-asyncio (DB `atheena_test`, Redis db 15, upstream palsu via respx), ruff (lint + format), mypy strict. 27 test.
 - **Makefile**: `dev`, `down`, `migrate`, `seed`, `test`, `lint`, `run`, plus `install`, `fmt`, `frontend`, `lock`.
 - **CI** (`.github/workflows/ci.yml`): job backend (service postgres:16 + redis:7 → lint + test) dan job frontend (npm ci → lint → build).
 - **Frontend**: skeleton Vite + React + TS (tanpa halaman), build dan lint bersih.
@@ -32,18 +32,37 @@ Tanggal: 28 September 2026.
 - **Status/peran/tipe sebagai `TEXT` + `CHECK`**, bukan enum Postgres, agar mudah diubah lewat migrasi.
 - **`ledger_entries.updated_at` tetap ada** (disetujui); nilainya selalu sama dengan `created_at` karena trigger.
 - **Email user disimpan lowercase** (CHECK `email = lower(email)`).
-- **Python tooling**: venv + pip, versi dipin persis. `backend/requirements.lock` berisi seluruh dependensi (langsung + transitif). VM 999 tidak punya `python3.12-venv` dan tidak ada sudo, jadi Makefile otomatis membuat venv tanpa pip lalu memasang pip lewat pip sistem.
+- **Python tooling**: venv + pip, versi dipin persis. `backend/requirements.lock` berisi seluruh dependensi (langsung + transitif). Makefile memakai `python3.12 -m venv` standar (sekarang `python3.12-venv` terpasang di VM 999); jalur cadangan (venv tanpa pip + pip sistem) tetap ada untuk mesin tanpa paket itu.
 - **Frontend**: versi npm dipin persis (`.npmrc save-exact`); template Vite sekarang memakai oxlint, bukan ESLint.
 - **`make dev` di VM 999** hanya mengecek Postgres dan Redis native. `make dev USE_DOCKER=1` menyalakan `docker-compose.dev.yml` untuk mesin lain.
+- **Katalog development** (disetujui pemilik): semua model di 9Router CT 110 adalah CodeBuddy (`cb/`), jadi ketiganya `experimental`, provider `codebuddy`, tier `basic`, aktif, harga Rp 0, `context_window` null (tidak diberikan upstream).
+
+  | Nama publik | ID upstream |
+  |---|---|
+  | `claude-haiku-4.5-exp` | `cb/claude-haiku-4.5` |
+  | `gemini-3.1-flash-lite` | `cb/gemini-3.1-flash-lite` |
+  | `glm-4.6` | `cb/glm-4.6` |
+
+  Claude diberi akhiran `-exp` agar nama tanpa akhiran tersedia untuk sumber Anthropic resmi (FR-4.0). `api_format = both` untuk ketiganya karena 9Router menerjemahkan format; kebenarannya dibuktikan di verifikasi manual TASK-001. Karena semuanya `experimental`, project `helios` akan menolak ketiganya (sesuai FR-3.10). Katalog produksi diisi setelah 9Router CT 300 siap.
+- **Rate limit per user**: 120 request/menit (2x per key), diputuskan pemilik, disimpan di settings `rate_limit_per_user_per_minute`.
 - **Git author** untuk repo ini diset ke email pemilik (config lokal repo), karena `user.email` global berisi placeholder.
 
-### Belum selesai / ditunda
-1. **Katalog model di seed**: `SEED_MODELS` masih kosong. Menunggu `.env` berisi `UPSTREAM_API_KEY` agar daftar model 9Router bisa diambil, lalu pilihan 2-3 model ditunjukkan ke pemilik sebelum dimasukkan.
-2. **`/readyz` terhadap 9Router sungguhan**: saat ini Postgres dan Redis sehat, upstream gagal karena `UPSTREAM_API_KEY` belum diisi (503 `UPSTREAM_API_KEY is not set`).
-3. **CI hijau**: terkonfirmasi pemilik (run #3, commit d304053).
-4. **`make seed` penuh** belum dijalankan ke DB dev, karena `SEED_ADMIN_EMAIL` ada di `.env` yang belum dibuat.
-5. **Rate limit per user**: diputuskan pemilik 120 request/menit (2x per key), disimpan di settings `rate_limit_per_user_per_minute`.
-6. Di luar scope: `pip-audit`/`npm audit` di CI (Tahap 6), job worker untuk partisi dan agregasi.
+### Ditunda (di luar scope TASK-000)
+- Job `worker`: pembuatan partisi `requests` bulanan dan agregasi `usage_daily`.
+- `pip-audit` / `npm audit` di CI (Tahap 6).
+- Katalog produksi dan model OpenAgentic: setelah 9Router CT 300 siap.
+- Verifikasi `api_format = both` untuk model `cb/`: manual di TASK-001.
+
+### Bukti selesai (28 September 2026, VM 999)
+- `rm -rf backend/.venv && make dev`: venv standar dibuat, `postgres: ok`, `redis: ok`.
+- `make migrate`: DB dev `atheena` di revisi `0001 (head)`. Migrasi dari nol sudah dibuktikan di clone bersih sebelumnya, dan `test_downgrade_and_upgrade_roundtrip` menjalankan downgrade → upgrade → `alembic check` di setiap `make test`.
+- `make seed` dijalankan dua kali: `Seed complete: admin <SEED_ADMIN_EMAIL>, 3 catalog models`. Isi DB: 2 user, project `helios` (`official_only = t`), 3 model, 8 settings. Tidak ada duplikat.
+- `make test`: 27 passed. `make lint`: ruff, format, dan mypy (24 file) bersih.
+- `curl localhost:8000/readyz` → HTTP 200:
+  `{"status":"ok","checks":{"postgres":{"ok":true,...},"redis":{"ok":true,...},"upstream":{"ok":true,...}}}`
+  Log akses JSON memuat `request_id` yang sama dengan header `X-Request-Id`; tidak ada body maupun key di log.
+- CI GitHub hijau (run #3, `d304053`, dikonfirmasi pemilik).
+- `git grep -n -i -E "sk-[a-z0-9]|password="`: hanya false positive (`ta`**`sk-0`**`00` di nama task, format `sk-ath-` di PRD). Tidak ada secret; `.env` di-gitignore.
 
 ### Cara reproduksi
 ```bash
