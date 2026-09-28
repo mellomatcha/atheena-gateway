@@ -10,7 +10,7 @@ COMPOSE := docker compose -f docker-compose.dev.yml
 USE_DOCKER ?= 0
 
 .DEFAULT_GOAL := help
-.PHONY: help install dev down migrate seed test lint fmt run lock frontend
+.PHONY: help install dev down migrate seed test lint fmt run lock frontend create-key
 
 help:
 	@grep -E '^[a-z-]+:.*## ' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*## "}; {printf "  %-10s %s\n", $$1, $$2}'
@@ -52,6 +52,10 @@ migrate: install ## Apply database migrations
 
 seed: install ## Seed admin, sample member, project, settings, starter models
 	cd backend && $(PY) -m app.seed
+
+create-key: install ## Create an API key: make create-key EMAIL=user@example.com NAME=laptop
+	@test -n "$(EMAIL)" -a -n "$(NAME)" || { echo "usage: make create-key EMAIL=... NAME=..."; exit 2; }
+	cd backend && $(PY) -m app.cli create-key --email "$(EMAIL)" --name "$(NAME)"
 
 test: install ## Run backend tests against the test database
 	cd backend && $(BIN)/pytest
