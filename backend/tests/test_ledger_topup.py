@@ -268,6 +268,7 @@ async def test_member_ledger_is_private_paginated_and_filterable(
         assert info.json() == {
             "whatsapp_number": "6282312202002",
             "qris_image_path": "/assets/qris.png",
+            "payments_enabled": False,
         }
 
 

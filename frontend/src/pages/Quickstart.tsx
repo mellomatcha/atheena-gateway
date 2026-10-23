@@ -1,4 +1,3 @@
-import { useLocation } from 'react-router'
 import { api, type CatalogModel } from '../api'
 import { CodeBlock } from '../components/CopyButton'
 import { useAsync } from '../useAsync'
@@ -10,10 +9,8 @@ interface Config {
 }
 
 export function QuickstartPage() {
-  const location = useLocation()
-  // A freshly created key arrives through router state only: never in the URL or storage.
-  const newKey = (location.state as { newKey?: string } | null)?.newKey
-  const key = newKey ?? KEY_PLACEHOLDER
+  // Keep plaintext keys only on the creation screen, never in browser history state.
+  const key = KEY_PLACEHOLDER
   const config = useAsync('config', () => api<Config>('/config'))
   const models = useAsync('models', () => api<CatalogModel[]>('/models'))
 
@@ -53,20 +50,17 @@ export function QuickstartPage() {
         </p>
       </header>
 
-      {newKey ? (
-        <p className="notice notice--ok">Key yang baru Anda buat sudah terisi di semua contoh di bawah.</p>
-      ) : (
-        <p className="notice">
-          Ganti <code className="num">{KEY_PLACEHOLDER}</code> dengan key Anda. Belum punya?{' '}
-          <a href="/app/keys">Buat key</a>.
-        </p>
-      )}
+      <p className="notice">
+        Ganti <code className="num">{KEY_PLACEHOLDER}</code> dengan key Anda. Belum punya?{' '}
+        <a href="/app/keys">Buat key</a>.
+      </p>
 
       <section className="section guide" aria-labelledby="opencode">
         <h2 id="opencode">OpenCode</h2>
         <p className="muted">
-          Simpan sebagai <code>~/.config/opencode/opencode.json</code> (atau <code>opencode.json</code> di
-          folder proyek). Model tampil sebagai <code>atheena/nama-model</code>.
+          Simpan sebagai <code>~/.config/opencode/opencode.json</code> (atau{' '}
+          <code>opencode.json</code> di folder proyek). Model tampil sebagai{' '}
+          <code>atheena/nama-model</code>.
         </p>
         <CodeBlock label="opencode.json" code={opencode} />
         <CodeBlock label="Terminal" code={`export ATHEENA_API_KEY="${key}"\nopencode`} />
@@ -133,7 +127,11 @@ export function QuickstartPage() {
                   <tr key={m.name}>
                     <td className="num">{m.name}</td>
                     <td className="muted">
-                      {m.api_format === 'both' ? 'OpenAI dan Anthropic' : m.api_format === 'openai' ? 'OpenAI' : 'Anthropic'}
+                      {m.api_format === 'both'
+                        ? 'OpenAI dan Anthropic'
+                        : m.api_format === 'openai'
+                          ? 'OpenAI'
+                          : 'Anthropic'}
                     </td>
                     <td className="muted">{m.category === 'official' ? 'Resmi' : 'Eksperimen'}</td>
                   </tr>

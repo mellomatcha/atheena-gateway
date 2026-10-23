@@ -1,16 +1,14 @@
-/* Atheena dashboard. PRD §10: black base, metal accents, one electric blue for primary actions.
-   Flat and calm: 1px gunmetal rules, no shadows, numbers always in the monospace face. */
+/* Current art direction: warm paper, ink, vermilion. User direction supersedes PRD §10. */
 
 :root {
-  --void: #0a0a0b;
-  --graphite: #17181b;
-  --gunmetal: #2a2d33;
-  --chrome: #c8ccd2;
-  --steel: #8a9099;
-  --electric: #2e5bff;
-  --ice: #9ec5ff;
-  /* Only for error text; kept muted so the blue stays the single accent. */
-  --fault: #e0737b;
+  --void: #eeeade;
+  --graphite: #f8f5eb;
+  --gunmetal: #c5bfb1;
+  --chrome: #26271f;
+  --steel: #696458;
+  --electric: #b93822;
+  --ice: #a52d1b;
+  --fault: #a12720;
 
   --font-ui: 'Schibsted Grotesk', system-ui, sans-serif;
   --font-num: 'Martian Mono Variable', ui-monospace, monospace;
@@ -23,11 +21,11 @@
   --t-xl: 1.75rem;
   --t-readout: 2.25rem;
 
-  --radius-control: 4px;
-  --radius-panel: 6px;
+  --radius-control: 2px;
+  --radius-panel: 2px;
   --rail-width: 15rem;
 
-  color-scheme: dark;
+  color-scheme: light;
 }
 
 *,
@@ -130,10 +128,10 @@ a {
   font-weight: 800;
   letter-spacing: -0.04em;
   text-decoration: none;
-  /* The one chrome effect allowed in the dashboard (PRD §10: logo only). */
-  background: linear-gradient(180deg, #f2f4f7 0%, var(--chrome) 45%, #6d737c 55%, var(--chrome) 100%);
-  background-clip: text;
-  color: transparent;
+  display: flex;
+  gap: .5rem;
+  align-items: center;
+  color: var(--chrome);
 }
 
 .readout {
@@ -1060,4 +1058,52 @@ code {
 
 .table--requests .status {
   white-space: normal;
+}
+/* Workspace and administration */
+.rail { overflow-y: auto; background: #e8e3d6; gap: 1.3rem; }
+.nav a { font-size: .86rem; padding-block: .45rem; }
+.nav a[aria-current='page'] { background: var(--chrome); color: #fffaf0; box-shadow: inset 3px 0 var(--electric); }
+.nav__group, .eyebrow { font-family: var(--font-num); font-size: .625rem; letter-spacing: .1em; text-transform: uppercase; }
+.eyebrow { color: var(--electric); display: block; margin-bottom: .8rem; }
+.button--primary { box-shadow: 3px 3px 0 var(--chrome); border: 1px solid var(--chrome); }
+.button--primary:hover { transform: translate(-1px, -1px); box-shadow: 4px 4px 0 var(--chrome); }
+.page__head h1 { font-size: clamp(1.8rem, 3vw, 2.5rem); letter-spacing: -.045em; }
+.workspace-welcome { display: grid; grid-template-columns: 1.2fr 1fr; border: 1px solid var(--chrome); background: var(--graphite); overflow: hidden; min-height: 17rem; }
+.workspace-welcome > div:first-child { padding: 2rem; align-self: center; z-index: 1; }
+.workspace-welcome h1 { font-size: clamp(2rem, 3vw, 3rem); line-height: 1.04; letter-spacing: -.05em; }
+.workspace-welcome p { margin: 1rem 0 1.5rem; color: var(--steel); }
+.welcome-art { position: relative; min-height: 17rem; overflow: hidden; background: #cf4a30; border-left: 1px solid var(--chrome); }
+.welcome-art img { position: absolute; width: 100%; height: 135%; object-fit: contain; object-position: top; top: .8rem; }
+.welcome-art > span { position: absolute; left: 1.5rem; top: 1rem; color: #f0c5ad; font-family: Georgia, serif; letter-spacing: .25em; font-size: 2rem; writing-mode: vertical-rl; }
+.editor { padding: 1.5rem; display: grid; gap: 1.25rem; }
+.editor > .button { justify-self: start; }
+.form-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem; }
+.actions { display: flex; align-items: center; flex-wrap: wrap; gap: .75rem; }
+.check { display: flex; align-items: center; gap: .6rem; }
+.check input { width: 1.1rem; height: 1.1rem; accent-color: var(--electric); }
+.badge { display: inline-block; border: 1px solid var(--gunmetal); padding: .12rem .4rem; font-size: .7rem; margin: .15rem .25rem .3rem 0; }
+.candidate-list { display: flex; flex-wrap: wrap; gap: .5rem; max-height: 18rem; overflow: auto; }
+.candidate-list .button { font-size: .8rem; overflow-wrap: anywhere; }
+.audit-values { display: grid; gap: 1rem; grid-template-columns: repeat(2, minmax(9rem, 1fr)); margin-top: 1rem; }
+.audit-values h3 { font-size: .8rem; }
+.audit-values pre { white-space: pre-wrap; overflow-wrap: anywhere; max-width: 25rem; }
+.health-card { border-left: 5px solid #516647; }
+.health-card--error { border-left-color: var(--fault); }
+.row--me { background: #e9e0cc; }
+.table tbody tr[aria-selected='true'] { background: #e9e0cc; }
+.table td { overflow-wrap: anywhere; }
+.table summary { cursor: pointer; color: var(--ice); }
+@media (max-width: 52rem) {
+  .rail { overflow: visible; }
+  .workspace-welcome > div:first-child { padding: 1.25rem; }
+  .workspace-welcome { min-height: 14rem; grid-template-columns: 1.4fr 1fr; }
+  .welcome-art { min-height: 14rem; }
+  .welcome-art img { width: 145%; left: -20%; }
+  .welcome-art > span { display: none; }
+}
+@media (max-width: 36rem) {
+  .form-grid { grid-template-columns: 1fr; }
+  .workspace-welcome h1 { font-size: 1.8rem; }
+  .workspace-welcome .button { padding-inline: .7rem; font-size: .8rem; }
+  .editor { padding: 1rem; }
 }

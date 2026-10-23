@@ -1,0 +1,74 @@
+# Isolated CT 102 stack. The existing ERPNext compose project is never changed.
+name: atheena-sandbox
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: atheena
+      POSTGRES_DB: atheena
+      POSTGRES_PASSWORD: ${SANDBOX_DB_PASSWORD:?required}
+    volumes:
+      - atheena-sandbox-pg:/var/lib/postgresql/data
+      - ./sandbox-init.sql:/docker-entrypoint-initdb.d/01-test-db.sql:ro
+    healthcheck:
+      test: [CMD-SHELL, pg_isready -U atheena -d atheena]
+      interval: 5s
+      timeout: 3s
+      retries: 15
+    restart: unless-stopped
+  redis:
+    image: redis:7-alpine
+    command: [redis-server, --appendonly, 'yes']
+    volumes:
+      - atheena-sandbox-redis:/data
+    healthcheck:
+      test: [CMD, redis-cli, ping]
+      interval: 5s
+      timeout: 3s
+      retries: 15
+    restart: unless-stopped
+  api:
+    build:
+      context: ..
+      dockerfile: backend/Dockerfile
+    env_file: ../.env.sandbox
+    working_dir: /srv/backend
+    volumes:
+      - ../backend:/srv/backend:ro
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+    security_opt: [no-new-privileges:true]
+    cap_drop: [ALL]
+  worker:
+    image: atheena-sandbox-api
+    env_file: ../.env.sandbox
+    working_dir: /srv/backend
+    command: [python, -m, app.worker]
+    volumes:
+      - ../backend:/srv/backend:ro
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+    security_opt: [no-new-privileges:true]
+    cap_drop: [ALL]
+  web:
+    image: caddy:2-alpine
+    ports: ['10.10.10.12:20131:80']
+    environment:
+      SANDBOX_PASSWORD_HASH: ${SANDBOX_PASSWORD_HASH:?required}
+    volumes:
+      - ./Caddyfile.sandbox:/etc/caddy/Caddyfile:ro
+      - ../frontend/dist:/srv:ro
+    depends_on: [api]
+    restart: unless-stopped
+    security_opt: [no-new-privileges:true]
+volumes:
+  atheena-sandbox-pg:
+  atheena-sandbox-redis:

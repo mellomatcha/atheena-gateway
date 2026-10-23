@@ -6,7 +6,9 @@ import { SessionProvider } from './session'
 import { useSession } from './session-context'
 
 // Route-level code splitting: the chart library only loads with the overview page.
-const OverviewPage = lazy(() => import('./pages/Overview').then((m) => ({ default: m.OverviewPage })))
+const OverviewPage = lazy(() =>
+  import('./pages/Overview').then((m) => ({ default: m.OverviewPage })),
+)
 const KeysPage = lazy(() => import('./pages/Keys').then((m) => ({ default: m.KeysPage })))
 const QuickstartPage = lazy(() =>
   import('./pages/Quickstart').then((m) => ({ default: m.QuickstartPage })),
@@ -15,6 +17,21 @@ const TopUpPage = lazy(() => import('./pages/TopUp').then((m) => ({ default: m.T
 const ProfilePage = lazy(() => import('./pages/Profile').then((m) => ({ default: m.ProfilePage })))
 const AdminBalancePage = lazy(() =>
   import('./pages/AdminBalance').then((m) => ({ default: m.AdminBalancePage })),
+)
+const UsersPage = lazy(() => import('./pages/admin/Users').then((m) => ({ default: m.UsersPage })))
+const ModelsPage = lazy(() =>
+  import('./pages/admin/Models').then((m) => ({ default: m.ModelsPage })),
+)
+const UsagePage = lazy(() => import('./pages/admin/Usage').then((m) => ({ default: m.UsagePage })))
+const SettingsPage = lazy(() =>
+  import('./pages/admin/Settings').then((m) => ({ default: m.SettingsPage })),
+)
+const AuditPage = lazy(() => import('./pages/admin/Audit').then((m) => ({ default: m.AuditPage })))
+const StatusPage = lazy(() =>
+  import('./pages/admin/Status').then((m) => ({ default: m.StatusPage })),
+)
+const LeaderboardPage = lazy(() =>
+  import('./pages/Leaderboard').then((m) => ({ default: m.LeaderboardPage })),
 )
 
 function Routed() {
@@ -34,7 +51,18 @@ function Routed() {
           <Route path="mulai" element={<QuickstartPage />} />
           <Route path="topup" element={<TopUpPage />} />
           <Route path="profil" element={<ProfilePage />} />
+          <Route path="leaderboard" element={<LeaderboardPage />} />
           {isAdmin && <Route path="admin/saldo" element={<AdminBalancePage />} />}
+          {isAdmin && (
+            <>
+              <Route path="admin/users" element={<UsersPage />} />
+              <Route path="admin/models" element={<ModelsPage />} />
+              <Route path="admin/usage" element={<UsagePage />} />
+              <Route path="admin/settings" element={<SettingsPage />} />
+              <Route path="admin/audit" element={<AuditPage />} />
+              <Route path="admin/status" element={<StatusPage />} />
+            </>
+          )}
           <Route path="*" element={<Navigate to="/app" replace />} />
         </Route>
         <Route path="*" element={<Navigate to="/app" replace />} />

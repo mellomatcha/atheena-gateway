@@ -415,3 +415,23 @@ TASK-006 (deploy CT 301) dan TASK-007 (landing page) belum dimulai.
 ### Catatan untuk sesi berikutnya
 - Server uji yang dijalankan di background dimatikan berdasarkan port/PID proses sebenarnya. PID dari `$!` setelah `cd … &&` ternyata PID subshell.
 - DB `atheena_test` berisi data demo (user `sari.demo@example.test`) dan akan dibangun ulang otomatis oleh `make test`.
+
+## 23 Oktober 2026 — TASK-005 functional completion and isolated sandbox
+
+Source continued from commit `6a39e7e` on the owner's Windows PC. New branch `codex/atheena-dashboard`. Current user instructions authorize only CT 102's isolated sandbox and CT 300's gateway, prohibit any further CT 100 access, and replace the old chrome/blue design with original ivory/vermilion Athena art.
+
+Implemented all six admin pages (users, global usage/monthly CSV, catalog/prices/sync, settings/projects, audit and system health), member leaderboard, role-based navigation and loading/error/empty states. Member keys, usage, ledger, quickstart and profile continue using the existing real portal API. Homepage carries the prior original Athena composition; dashboard has matching visual identity.
+
+Fixed invalid report years returning server errors, isolated test configuration from deployment environment, removed plaintext API keys from router history state, and added an explicit payment-enable gate so sample QRIS cannot be presented as live payment. Updated vulnerable Vite/source-map dependencies; npm audit reports zero vulnerabilities. Added pinned UI test and formatting tools.
+
+Validation: **174 backend tests passed** (152 existing + 22 admin/leaderboard cases); ruff check/format and mypy passed for 74 files. **6 frontend interaction tests passed**, oxlint and TypeScript/Vite build passed. Tests cover member rejection, warm-key suspension, self-lockout prevention, price/settings audit, non-mutating sync, monthly CSV consistency, invalid dates, upstream failure health, leaderboard privacy/thresholds, expired login, CSRF headers, one-time key display, and disabled payments.
+
+Deployment: five services in compose project `atheena-sandbox`, `/opt/atheena-sandbox` on CT 102, independent DB/Redis storage and port 20131. No existing ERPNext/CT 100 changes. Upstream is official CT 300 via `100.75.171.91:20129/v1`; the LAN address timed out from CT 102. Dedicated server-side 9Router key created for this sandbox. Public model `deepseek-v4.1-flash` maps to `cbai/deepseek-v4.1-flash`. Sandbox has a clearly noted Rp 10,000 test ledger adjustment; all model prices are zero.
+
+Manual functional evidence: password login and anonymous/invalid credential rejection passed; personal API-key catalog, real OpenAI completion, Anthropic completion and SSE `[DONE]` passed; actual token/request metadata recorded. All member/admin read endpoints and upstream health returned 200. Windows OpenCode (tools disabled, isolated config) returned exactly `ATHEENA_PORTAL_OK`, exit 0, 12.5 seconds. Existing client configuration retained.
+
+Preview: `http://127.0.0.1:4173/` through SSH; `scripts/Start-SandboxPreview.ps1` can restart the local tunnel. Credentials remain in the parent workspace's ACL-protected private folder and the server's mode-0600 files, never in Git. User access and command details: `docs/sandbox-operations.md`.
+
+Production Caddy/compose and Cloudflare environment template prepared and configuration-validated, **not deployed**. Owner answered that Cloudflare Access is not set up. Remaining: Google identity/allowlist/AUD, tunnel/public hostname, real QRIS, production backup/restore checks and target deployment. See `docs/cloudflare-setup.md`.
+
+Visual browser QA remains unverified: the browser tool rejected private/local origins; no alternate browser automation was used. TASK-005's visual acceptance is therefore still pending even though its implementation and functional checks pass. Earlier environment/CT 110/VM 999 notes above describe historical work, not the current sandbox.

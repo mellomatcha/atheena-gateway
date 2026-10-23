@@ -1,10 +1,41 @@
-# Internal reverse proxy on CT 301 (PRD §4.1, §9.1). PLACEHOLDER: completed in the deployment task.
-# TODO(deploy):
-# - serve the built frontend (frontend/dist) as static files
-# - reverse_proxy /v1/* and /app/* to api:8000 with streaming (flush_interval -1)
-# - security headers: CSP, HSTS, X-Content-Type-Options (PRD §11)
-# - never expose /healthz or /readyz through the tunnel (PRD §8)
-
+# Production origin, reachable only by cloudflared on the compose network.
+# Cloudflare Access protects ai.atheena.online/app and /app/*.
+# The API independently validates signed Access JWTs; /v1 uses personal API keys.
+{
+  auto_https off
+}
 :80 {
-	respond "Atheena AI Gateway: deployment not configured yet" 503
+  header {
+    X-Content-Type-Options nosniff
+    Referrer-Policy same-origin
+    X-Frame-Options DENY
+    Strict-Transport-Security "max-age=31536000"
+    Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'self'; frame-ancestors 'none'; form-action 'self'; base-uri 'none'; object-src 'none'"
+    Cache-Control no-store
+  }
+  @gateway path /v1/* /app/api/*
+  handle @gateway {
+    reverse_proxy api:8000 {
+      flush_interval -1
+    }
+  }
+  handle / {
+    root * /srv
+    rewrite * /home.html
+    file_server
+  }
+  @publicAssets path /assets/* /brand/*
+  handle @publicAssets {
+    root * /srv
+    file_server
+  }
+  @portal path /app /app/*
+  handle @portal {
+    root * /srv
+    rewrite * /index.html
+    file_server
+  }
+  handle {
+    respond 404
+  }
 }

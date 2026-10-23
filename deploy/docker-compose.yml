@@ -1,47 +1,68 @@
-# Production stack for CT 301 (PRD §9.1). PLACEHOLDER: completed in the deployment task.
-# TODO(deploy): build the api/worker image, wire secrets from /opt/atheena/.env (chmod 600),
-# run containers as non-root, and add backups (PRD §11, §12).
+# Prepared production stack. Not started by the CT 102 sandbox workflow.
 name: atheena
-
+x-app: &app
+  image: atheena-api:local
+  env_file: ../.env.production
+  environment:
+    APP_ENV: production
+    DEV_AUTH_EMAIL: ''
+    DATABASE_URL: postgresql+asyncpg://atheena:${POSTGRES_PASSWORD:?required}@postgres:5432/atheena
+    REDIS_URL: redis://redis:6379/0
+    CF_ACCESS_TEAM_DOMAIN: ${CF_ACCESS_TEAM_DOMAIN:?required}
+    CF_ACCESS_AUD: ${CF_ACCESS_AUD:?required}
+    PUBLIC_API_BASE_URL: https://ai.atheena.online/v1
+  depends_on:
+    postgres: {condition: service_healthy}
+    redis: {condition: service_healthy}
+  restart: unless-stopped
+  security_opt: [no-new-privileges:true]
+  cap_drop: [ALL]
 services:
+  api:
+    <<: *app
+    build:
+      context: ..
+      dockerfile: backend/Dockerfile
+  worker:
+    <<: *app
+    command: [python, -m, app.worker]
   caddy:
-    image: caddy:2
-    # TODO(deploy): serve frontend/dist and reverse-proxy /v1/* and /app/* to api.
+    image: caddy:2-alpine
     volumes:
       - ./Caddyfile:/etc/caddy/Caddyfile:ro
-    depends_on:
-      - api
-
-  api:
-    # TODO(deploy): Dockerfile for backend/ (uvicorn app.main:app).
-    image: atheena-api:TODO
-    env_file: .env
-    depends_on:
-      - postgres
-      - redis
-
-  worker:
-    # TODO(deploy): daily usage_daily aggregation, requests partition creation, cleanup.
-    image: atheena-api:TODO
-    env_file: .env
-    depends_on:
-      - postgres
-
+      - ../frontend/dist:/srv:ro
+    depends_on: [api]
+    restart: unless-stopped
+    security_opt: [no-new-privileges:true]
   postgres:
-    image: postgres:16
-    # TODO(deploy): credentials from .env, data volume, pg_dump backup job.
-    volumes:
-      - postgres-data:/var/lib/postgresql/data
-
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: atheena
+      POSTGRES_DB: atheena
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?required}
+    volumes: [postgres-data:/var/lib/postgresql/data]
+    healthcheck:
+      test: [CMD-SHELL, pg_isready -U atheena -d atheena]
+      interval: 5s
+      retries: 15
+    restart: unless-stopped
   redis:
-    image: redis:7
-
+    image: redis:7-alpine
+    command: [redis-server, --appendonly, 'yes']
+    volumes: [redis-data:/data]
+    healthcheck:
+      test: [CMD, redis-cli, ping]
+      interval: 5s
+      retries: 15
+    restart: unless-stopped
   cloudflared:
     image: cloudflare/cloudflared:latest
-    # TODO(deploy): tunnel token from .env; routes ai./api. hostnames to caddy.
-    command: tunnel run
-    depends_on:
-      - caddy
-
+    command: tunnel --no-autoupdate run
+    environment:
+      TUNNEL_TOKEN: ${TUNNEL_TOKEN:?required}
+    depends_on: [caddy]
+    restart: unless-stopped
+    security_opt: [no-new-privileges:true]
 volumes:
   postgres-data:
+  redis-data:

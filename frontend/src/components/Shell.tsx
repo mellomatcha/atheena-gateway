@@ -13,8 +13,8 @@ export function Shell() {
       </a>
       <aside className="rail">
         <div className="rail__top">
-          <a className="wordmark" href="/app">
-            Atheena
+          <a className="wordmark" href="/">
+            <img src="/brand/mark.svg" alt="" width="25" height="28" /> ATHEENA
           </a>
           <div className="readout">
             <span className="readout__label">Saldo</span>
@@ -31,15 +31,26 @@ export function Shell() {
           <NavLink to="/app/keys">API key</NavLink>
           <NavLink to="/app/mulai">Mulai</NavLink>
           <NavLink to="/app/topup">Top-up</NavLink>
+          <NavLink to="/app/leaderboard">Leaderboard</NavLink>
           <NavLink to="/app/profil">Pengaturan</NavLink>
           {me.role === 'admin' && (
             <>
               <p className="nav__group">Admin</p>
+              <NavLink to="/app/admin/users">Pengguna</NavLink>
               <NavLink to="/app/admin/saldo">Saldo pengguna</NavLink>
+              <NavLink to="/app/admin/usage">Pemakaian global</NavLink>
+              <NavLink to="/app/admin/models">Katalog & harga</NavLink>
+              <NavLink to="/app/admin/settings">Pengaturan gateway</NavLink>
+              <NavLink to="/app/admin/audit">Audit log</NavLink>
+              <NavLink to="/app/admin/status">Status sistem</NavLink>
             </>
           )}
         </nav>
         <p className="rail__user">
+          <span className="badge">
+            {me.role} / {me.tier}
+          </span>
+          <br />
           {me.display_name}
           <br />
           {me.email}

@@ -108,7 +108,7 @@ class MonthlyReportOut(BaseModel):
 
 
 def _check_month(month: str) -> str:
-    if not MONTH_PATTERN.match(month):
+    if not MONTH_PATTERN.match(month) or not 1 <= int(month[:4]) <= 9998:
         raise PortalError(400, "invalid_month", "Format bulan harus YYYY-MM.")
     return month
 

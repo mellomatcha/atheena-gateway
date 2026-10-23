@@ -1,11 +1,21 @@
 import { useState } from 'react'
-import { api, type ApiKey, type Facets, type RequestPage, type Summary, type Timeseries, type Totals } from '../api'
+import {
+  api,
+  type ApiKey,
+  type Facets,
+  type RequestPage,
+  type Summary,
+  type Timeseries,
+  type Totals,
+} from '../api'
 import { RequestTable } from '../components/RequestTable'
 import { UsageChart } from '../components/UsageChart'
 import { UsageFiltersBar } from '../components/UsageFilters'
 import { filterQuery, useUsageFilters } from '../filters'
 import { formatIDR, formatNumber } from '../format'
 import { useAsync } from '../useAsync'
+import { Link } from 'react-router'
+import { useMe } from '../session-context'
 
 type Unit = 'idr' | 'token'
 
@@ -15,13 +25,16 @@ function Stat({ label, totals }: { label: string; totals: Totals | undefined }) 
       <dt className="stat__label">{label}</dt>
       <dd className="stat__value num">{totals ? formatIDR(totals.cost_idr) : '…'}</dd>
       <dd className="stat__sub num muted">
-        {totals ? `${formatNumber(totals.tokens)} token, ${formatNumber(totals.requests)} request` : ''}
+        {totals
+          ? `${formatNumber(totals.tokens)} token, ${formatNumber(totals.requests)} request`
+          : ''}
       </dd>
     </div>
   )
 }
 
 export function OverviewPage() {
+  const { me } = useMe()
   const [filters, setFilters] = useUsageFilters()
   const [unit, setUnit] = useState<Unit>('idr')
   const [page, setPage] = useState(1)
@@ -48,8 +61,23 @@ export function OverviewPage() {
 
   return (
     <div className="page">
-      <header className="page__head">
-        <h1>Ringkasan pemakaian</h1>
+      <header className="workspace-welcome">
+        <div>
+          <span className="eyebrow">ATHEENA / YOUR WORKSPACE</span>
+          <h1>
+            Selamat datang,
+            <br />
+            {me.display_name}.
+          </h1>
+          <p>Model pilihanmu. Kendali di tanganmu.</p>
+          <Link className="button button--primary" to="/app/keys">
+            Kelola API key ↗
+          </Link>
+        </div>
+        <div className="welcome-art" aria-hidden="true">
+          <span>ΑΘΗΝΑ</span>
+          <img src="/brand/athena.png" alt="" />
+        </div>
       </header>
 
       <dl className="stats">

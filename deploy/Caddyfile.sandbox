@@ -1,0 +1,50 @@
+{
+  auto_https off
+}
+:80 {
+  header {
+    X-Content-Type-Options nosniff
+    Referrer-Policy same-origin
+    X-Frame-Options DENY
+    Cache-Control "no-store"
+  }
+  # The API has its own sk-ath authentication. Dashboard development bypass is
+  # always behind this separate password gate, never exposed as an open session.
+  handle /v1/* {
+    reverse_proxy api:8000 {
+      flush_interval -1
+    }
+  }
+  handle /healthz {
+    respond 404
+  }
+  handle /readyz {
+    respond 404
+  }
+  handle / {
+    root * /srv
+    rewrite * /home.html
+    file_server
+  }
+  handle /brand/* {
+    root * /srv
+    file_server
+  }
+  handle {
+    basic_auth {
+      sandbox {$SANDBOX_PASSWORD_HASH}
+    }
+    @dashboardApi path /app/api/*
+    handle @dashboardApi {
+      reverse_proxy api:8000 {
+        header_up -Authorization
+        flush_interval -1
+      }
+    }
+    handle {
+      root * /srv
+      try_files {path} /index.html
+      file_server
+    }
+  }
+}

@@ -78,7 +78,7 @@ export function KeysPage() {
             <button
               type="button"
               className="button button--primary"
-              onClick={() => navigate('/app/mulai', { state: { newKey: created.key } })}
+              onClick={() => { setCreated(undefined); navigate('/app/mulai') }}
             >
               Pasang di OpenCode atau Claude Code
             </button>

@@ -62,6 +62,8 @@ def make_settings(**overrides: object) -> Settings:
         "upstream_base_url": FAKE_UPSTREAM,
         "upstream_api_key": SecretStr(FAKE_UPSTREAM_KEY),
         "seed_admin_email": "admin@example.test",
+        "dev_auth_email": "",
+        "public_api_base_url": "https://api.atheena.online/v1",
     }
     values.update(overrides)
     return Settings(_env_file=None, **values)  # type: ignore[arg-type]

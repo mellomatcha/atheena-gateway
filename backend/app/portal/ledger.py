@@ -75,11 +75,14 @@ async def get_ledger(
 class TopupInfo(BaseModel):
     whatsapp_number: str
     qris_image_path: str
+    payments_enabled: bool
 
 
 @router.get("/topup-info")
 async def topup_info(request: Request, user: CurrentUser) -> TopupInfo:
     settings: Settings = request.app.state.settings
     return TopupInfo(
-        whatsapp_number=settings.topup_whatsapp_number, qris_image_path=settings.topup_qris_path
+        whatsapp_number=settings.topup_whatsapp_number,
+        qris_image_path=settings.topup_qris_path,
+        payments_enabled=settings.topup_enabled,
     )

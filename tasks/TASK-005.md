@@ -50,3 +50,11 @@ Admin bisa mengelola user, top-up, harga dan katalog model, pengaturan, dan proy
 
 ## Selesai jika
 `make test` dan `make lint` hijau, build frontend sukses, dan bukti tercatat di `docs/progress.md`. Sesuai acceptance Tahap 5: admin bisa mengelola user, top-up, dan harga, serta mengekspor laporan bulanan per proyek.
+
+## Kelanjutan 23 Oktober 2026
+
+Implementasi frontend dan tes dilanjutkan di PC pemilik, kemudian diuji dalam `/opt/atheena-sandbox` CT 102 atas instruksi terbaru pemilik. CT 100 tidak disentuh. Lingkungan dan desain terbaru dicatat dalam `docs/session-2026-10-23.md`.
+
+Urutan: lengkapi halaman admin/leaderboard → tes batas akses dan audit → terapkan identitas Athena → build dan deploy sandbox → smoke HTTP nyata dengan model CodeBuddy murah → OpenCode dari PC. Uji otomatis tetap memakai provider palsu. Bukti dan akses ada di `docs/sandbox-operations.md`.
+
+Implementasi dan verifikasi fungsi sudah lulus. Acceptance visual desktop/mobile masih tertunda karena browser menolak akses origin; tidak diganti dengan alat browser lain. Cloudflare produksi belum dikonfigurasi oleh pemilik.
