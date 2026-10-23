@@ -10,7 +10,9 @@ x-app: &app
     REDIS_URL: redis://redis:6379/0
     CF_ACCESS_TEAM_DOMAIN: ${CF_ACCESS_TEAM_DOMAIN:?required}
     CF_ACCESS_AUD: ${CF_ACCESS_AUD:?required}
-    PUBLIC_API_BASE_URL: https://ai.atheena.online/v1
+    CF_ACCESS_ADMIN_AUD: ${CF_ACCESS_ADMIN_AUD:?required}
+    PORTAL_CONSOLE_HOST: console.atheena.online
+    PUBLIC_API_BASE_URL: https://atheena.online/v1
   depends_on:
     postgres: {condition: service_healthy}
     redis: {condition: service_healthy}

@@ -1,10 +1,9 @@
-# Production origin, reachable only by cloudflared on the compose network.
-# Cloudflare Access protects ai.atheena.online/app and /app/*.
-# The API independently validates signed Access JWTs; /v1 uses personal API keys.
+# Only cloudflared reaches this origin. Access protects both private hostnames.
+# Each private hostname has its own JWT audience; the console also requires admin role.
 {
   auto_https off
 }
-:80 {
+(security) {
   header {
     X-Content-Type-Options nosniff
     Referrer-Policy same-origin
@@ -13,8 +12,36 @@
     Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'self'; frame-ancestors 'none'; form-action 'self'; base-uri 'none'; object-src 'none'"
     Cache-Control no-store
   }
-  @gateway path /v1/* /app/api/* /api/public/*
+}
+(assets) {
+  @assets path /assets/* /brand/*
+  handle @assets {
+    root * /srv
+    file_server
+  }
+}
+(portal) {
+  @gateway path /app/api/* /api/public/*
   handle @gateway {
+    reverse_proxy api:8000 {
+      flush_interval -1
+    }
+  }
+  import assets
+  @portal path /app /app/*
+  handle @portal {
+    root * /srv
+    rewrite * /index.html
+    file_server
+  }
+  handle /pricing {
+    redir https://atheena.online/pricing 302
+  }
+}
+http://atheena.online {
+  import security
+  @publicApi path /v1/* /api/public/*
+  handle @publicApi {
     reverse_proxy api:8000 {
       flush_interval -1
     }
@@ -24,23 +51,48 @@
     rewrite * /home.html
     file_server
   }
-  @publicAssets path /assets/* /brand/*
-  handle @publicAssets {
-    root * /srv
-    file_server
-  }
-  @portal path /app /app/*
-  handle @portal {
-    root * /srv
-    rewrite * /index.html
-    file_server
-  }
+  import assets
   handle /pricing {
     root * /srv
     rewrite * /index.html
     file_server
   }
+  @oldPortal path /app /app/*
+  handle @oldPortal {
+    redir https://dashboard.atheena.online{uri} 302
+  }
   handle {
     respond 404
   }
+}
+http://dashboard.atheena.online {
+  import security
+  @adminApi path /app/api/admin /app/api/admin/*
+  handle @adminApi {
+    respond 404
+  }
+  @adminUi path /app/admin /app/admin/*
+  handle @adminUi {
+    redir https://console.atheena.online{uri} 302
+  }
+  handle / {
+    redir * /app 302
+  }
+  import portal
+  handle {
+    respond 404
+  }
+}
+http://console.atheena.online {
+  import security
+  handle / {
+    redir * /app/admin/users 302
+  }
+  import portal
+  handle {
+    respond 404
+  }
+}
+:80 {
+  respond 404
 }

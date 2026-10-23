@@ -46,6 +46,15 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             if settings.cf_access_team_domain and settings.cf_access_aud
             else None
         )
+        app.state.admin_access_verifier = (
+            AccessVerifier(
+                app.state.access_client,
+                settings.cf_access_team_domain,
+                settings.cf_access_admin_aud,
+            )
+            if settings.cf_access_team_domain and settings.cf_access_admin_aud
+            else None
+        )
         try:
             yield
         finally:

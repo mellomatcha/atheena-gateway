@@ -90,6 +90,46 @@ async def test_email_claim_is_case_insensitive(
 
 
 @pytest.mark.parametrize(
+    ("host", "aud", "role", "expected"),
+    [
+        ("dashboard.atheena.online", AUD, "member", 200),
+        ("dashboard.atheena.online", "console-aud", "admin", 401),
+        ("console.atheena.online", AUD, "admin", 401),
+        ("console.atheena.online", "console-aud", "admin", 200),
+        ("console.atheena.online", "console-aud", "member", 403),
+    ],
+)
+async def test_host_bound_login_and_console_role(
+    client_factory: ClientFactory,
+    certs: respx.Route,
+    host: str,
+    aud: str,
+    role: str,
+    expected: int,
+) -> None:
+    async with gateway_data() as data:
+        user_id = await data.user()
+        await data.execute("UPDATE users SET role=:role WHERE id=:id", role=role, id=user_id)
+        async with client_factory(**CF, cf_access_admin_aud="console-aud") as client:
+            response = await client.get(
+                f"https://{host}/app/api/me",
+                headers={"Cf-Access-Jwt-Assertion": token(email_of(user_id), aud=aud)},
+            )
+    assert response.status_code == expected
+
+
+async def test_console_missing_audience_fails_closed(
+    client_factory: ClientFactory, certs: respx.Route
+) -> None:
+    async with client_factory(**CF) as client:
+        response = await client.get(
+            "https://console.atheena.online/app/api/me",
+            headers={"Cf-Access-Jwt-Assertion": token("admin@example.test")},
+        )
+    assert response.status_code == 401
+
+
+@pytest.mark.parametrize(
     "bad_token",
     [
         pytest.param(lambda e: token(e, aud="another-app"), id="wrong-aud"),

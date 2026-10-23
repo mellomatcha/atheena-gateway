@@ -58,7 +58,11 @@ async def authenticated_email(request: Request) -> str:
     bypass = settings.dev_auth_bypass_email
     if bypass is not None:
         return bypass
-    verifier: AccessVerifier | None = request.app.state.access_verifier
+    verifier: AccessVerifier | None = (
+        request.app.state.admin_access_verifier
+        if request.url.hostname == settings.portal_console_host
+        else request.app.state.access_verifier
+    )
     token = request.headers.get("cf-access-jwt-assertion") or request.cookies.get(
         "CF_Authorization"
     )
@@ -77,12 +81,15 @@ async def authenticated_email(request: Request) -> str:
 
 
 async def current_user(
-    session: SessionDep, email: Annotated[str, Depends(authenticated_email)]
+    request: Request, session: SessionDep, email: Annotated[str, Depends(authenticated_email)]
 ) -> User:
     """Passing Access is not enough: the email must be an active portal user (FR-1.3)."""
     user = await session.scalar(select(User).where(User.email == email))
     if user is None or user.status != "active":
         raise account_inactive()
+    settings: Settings = request.app.state.settings
+    if request.url.hostname == settings.portal_console_host and user.role != "admin":
+        raise PortalError(403, "admin_only", "Console hanya tersedia untuk admin.")
     return user
 
 

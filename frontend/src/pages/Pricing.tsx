@@ -1,8 +1,9 @@
 import { useState } from 'react'
-import { Link, useSearchParams } from 'react-router'
+import { useSearchParams } from 'react-router'
 import { ThemeToggle } from '../components/ThemeToggle'
 import { formatIDR, formatNumber } from '../format'
 import { useAsync } from '../useAsync'
+import { siteLinks } from '../sites'
 
 interface CatalogModel {
   id: string
@@ -44,6 +45,7 @@ async function publicGet<T>(path: string): Promise<T> {
 }
 
 export function PricingPage({ workspace = false }: { workspace?: boolean }) {
+  const links = siteLinks()
   const catalog = useAsync('public-catalog', () => publicGet<Catalog>('catalog'))
   const [params] = useSearchParams()
   const [selectedModel, setModelId] = useState(params.get('model') ?? 'deepseek-v4.1-flash')
@@ -87,9 +89,9 @@ export function PricingPage({ workspace = false }: { workspace?: boolean }) {
           </a>
           <a href="/#models">Model</a>
           <ThemeToggle />
-          <Link className="button" to="/app">
+          <a className="button" href={links.dashboard}>
             Masuk ↗
-          </Link>
+          </a>
         </header>
       )}
       <header className="pricing-hero">
@@ -385,7 +387,7 @@ export function PricingPage({ workspace = false }: { workspace?: boolean }) {
             <a href="/#filosofi">Filosofi</a>
             <a href="/#models">Model</a>
             <a href="/#mulai">Integrasi</a>
-            <Link to="/app">Portal ↗</Link>
+            <a href={links.dashboard}>Portal ↗</a>
           </nav>
           <small>© 2026 ATHEENA · Independent AI gateway</small>
         </footer>

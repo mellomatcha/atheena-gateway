@@ -35,6 +35,8 @@ class Settings(BaseSettings):
     # Application Audience (AUD) tag of the portal application.
     cf_access_team_domain: str = ""
     cf_access_aud: str = ""
+    cf_access_admin_aud: str = ""
+    portal_console_host: str = "console.atheena.online"
     # Top-up (FR-5.3): WhatsApp number for payment confirmations and the public path of the
     # static QRIS image. Both can change without rebuilding the frontend.
     topup_whatsapp_number: str = "6282312202002"
@@ -42,7 +44,7 @@ class Settings(BaseSettings):
     # Explicitly enabled only after the owner installs and verifies the real payment QR.
     topup_enabled: bool = False
     # Base URL users paste into their tools (FR-3.0, FR-6.7 quickstart snippets).
-    public_api_base_url: str = "https://api.atheena.online/v1"
+    public_api_base_url: str = "https://atheena.online/v1"
 
     # Development only: treat every dashboard request as this email. Refused in production.
     dev_auth_email: str | None = None

@@ -8,6 +8,7 @@ import { ModelsPage } from '../src/pages/admin/Models'
 import { KeysPage } from '../src/pages/Keys'
 import { TopUpPage } from '../src/pages/TopUp'
 import App from '../src/App'
+import * as sites from '../src/sites'
 
 afterEach(() => {
   cleanup()
@@ -44,6 +45,46 @@ test('member navigation cannot expose administration pages', () => {
   expect(screen.getByRole('link', { name: 'API key' })).toBeTruthy()
   expect(screen.queryByRole('link', { name: 'Pengguna' })).toBeNull()
   expect(screen.queryByRole('link', { name: 'Katalog & harga' })).toBeNull()
+})
+
+test('production dashboard sends admins to the separate console', () => {
+  vi.spyOn(sites, 'getSurface').mockReturnValue('dashboard')
+  render(
+    <MemoryRouter>
+      <SessionContext
+        value={{
+          state: { status: 'ready', me: { ...me, role: 'admin' } },
+          refresh: async () => {},
+        }}
+      >
+        <Shell />
+      </SessionContext>
+    </MemoryRouter>,
+  )
+  expect(screen.getByRole('link', { name: 'API key' })).toBeTruthy()
+  expect(screen.getByRole('link', { name: 'Console admin ↗' }).getAttribute('href')).toContain(
+    'console.atheena.online',
+  )
+  expect(screen.queryByRole('link', { name: 'Pengguna' })).toBeNull()
+})
+
+test('console navigation contains administration and a return to dashboard', () => {
+  vi.spyOn(sites, 'getSurface').mockReturnValue('console')
+  render(
+    <MemoryRouter>
+      <SessionContext
+        value={{
+          state: { status: 'ready', me: { ...me, role: 'admin' } },
+          refresh: async () => {},
+        }}
+      >
+        <Shell />
+      </SessionContext>
+    </MemoryRouter>,
+  )
+  expect(screen.getByRole('link', { name: 'Pengguna' })).toBeTruthy()
+  expect(screen.getByRole('link', { name: 'Dashboard pengguna ↗' })).toBeTruthy()
+  expect(screen.queryByRole('link', { name: 'API key' })).toBeNull()
 })
 
 test('expired authentication stops before rendering workspace', async () => {

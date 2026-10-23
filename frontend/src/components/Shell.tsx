@@ -2,10 +2,14 @@ import { Link, NavLink, Outlet } from 'react-router'
 import { formatIDR, formatNumber } from '../format'
 import { useMe } from '../session-context'
 import { ThemeToggle } from './ThemeToggle'
+import { getSurface, siteLinks } from '../sites'
 
 export function Shell() {
   const { me } = useMe()
   const low = me.balance_idr < me.low_balance_threshold_idr
+  const surface = getSurface()
+  const links = siteLinks(surface)
+  const consoleOnly = surface === 'console'
 
   return (
     <div className="shell">
@@ -14,7 +18,7 @@ export function Shell() {
       </a>
       <aside className="rail">
         <div className="rail__top">
-          <a className="wordmark" href="/">
+          <a className="wordmark" href={links.home}>
             <img src="/brand/mark.svg" alt="" width="25" height="28" /> ATHEENA
           </a>
           <div className="readout">
@@ -26,16 +30,24 @@ export function Shell() {
           </div>
         </div>
         <nav className="nav" aria-label="Menu utama">
-          <NavLink to="/app" end>
-            Ringkasan
-          </NavLink>
-          <NavLink to="/app/keys">API key</NavLink>
-          <NavLink to="/app/paket">Paket & kalkulator</NavLink>
-          <NavLink to="/app/mulai">Mulai</NavLink>
-          <NavLink to="/app/topup">Top-up</NavLink>
-          <NavLink to="/app/leaderboard">Leaderboard</NavLink>
-          <NavLink to="/app/profil">Pengaturan</NavLink>
-          {me.role === 'admin' && (
+          {!consoleOnly && (
+            <>
+              <NavLink to="/app" end>
+                Ringkasan
+              </NavLink>
+              <NavLink to="/app/keys">API key</NavLink>
+              <NavLink to="/app/paket">Paket & kalkulator</NavLink>
+              <NavLink to="/app/mulai">Mulai</NavLink>
+              <NavLink to="/app/topup">Top-up</NavLink>
+              <NavLink to="/app/leaderboard">Leaderboard</NavLink>
+              <NavLink to="/app/profil">Pengaturan</NavLink>
+            </>
+          )}
+          {consoleOnly && <a href={links.dashboard}>Dashboard pengguna ↗</a>}
+          {me.role === 'admin' && surface === 'dashboard' && (
+            <a href={links.console}>Console admin ↗</a>
+          )}
+          {me.role === 'admin' && surface !== 'dashboard' && (
             <>
               <p className="nav__group">Admin</p>
               <NavLink to="/app/admin/users">Pengguna</NavLink>
@@ -59,7 +71,7 @@ export function Shell() {
         <ThemeToggle />
       </aside>
       <main className="main" id="konten" tabIndex={-1}>
-        {low && (
+        {low && !consoleOnly && (
           <p className="banner" role="status">
             Saldo Anda {formatIDR(me.balance_idr)}, di bawah batas peringatan{' '}
             {formatIDR(me.low_balance_threshold_idr)}. Request ditolak saat saldo di bawah minimum.{' '}
@@ -69,7 +81,7 @@ export function Shell() {
         <Outlet />
         <footer className="workspace-footer">
           <span>ATHEENA © 2026 · Kecerdasan dengan arah.</span>
-          <a href="/pricing">Paket & model ↗</a>
+          <a href={links.pricing}>Paket & model ↗</a>
         </footer>
       </main>
     </div>

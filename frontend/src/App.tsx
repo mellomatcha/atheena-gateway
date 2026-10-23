@@ -4,6 +4,7 @@ import { Shell } from './components/Shell'
 import { ErrorPage, InactivePage, SignedOutPage } from './pages/StatusPages'
 import { SessionProvider } from './session'
 import { useSession } from './session-context'
+import { getSurface, siteLinks } from './sites'
 
 // Route-level code splitting: the chart library only loads with the overview page.
 const OverviewPage = lazy(() =>
@@ -43,19 +44,30 @@ function Routed() {
   if (state.status === 'error') return <ErrorPage message={state.message} />
 
   const isAdmin = state.me.role === 'admin'
+  const surface = getSurface()
+  const consoleOnly = surface === 'console'
+  const showAdmin = isAdmin && surface !== 'dashboard'
+  const start = consoleOnly ? '/app/admin/users' : '/app'
+  if (consoleOnly && !isAdmin) {
+    return <ErrorPage message="Console hanya tersedia untuk admin." />
+  }
   return (
     <Suspense fallback={<div className="status-page muted">Memuat…</div>}>
       <Routes>
         <Route path="/app" element={<Shell />}>
-          <Route index element={<OverviewPage />} />
-          <Route path="keys" element={<KeysPage />} />
-          <Route path="mulai" element={<QuickstartPage />} />
-          <Route path="topup" element={<TopUpPage />} />
-          <Route path="profil" element={<ProfilePage />} />
-          <Route path="leaderboard" element={<LeaderboardPage />} />
-          <Route path="paket" element={<PricingPage workspace />} />
-          {isAdmin && <Route path="admin/saldo" element={<AdminBalancePage />} />}
-          {isAdmin && (
+          <Route index element={consoleOnly ? <Navigate to={start} replace /> : <OverviewPage />} />
+          {!consoleOnly && (
+            <>
+              <Route path="keys" element={<KeysPage />} />
+              <Route path="mulai" element={<QuickstartPage />} />
+              <Route path="topup" element={<TopUpPage />} />
+              <Route path="profil" element={<ProfilePage />} />
+              <Route path="leaderboard" element={<LeaderboardPage />} />
+              <Route path="paket" element={<PricingPage workspace />} />
+            </>
+          )}
+          {showAdmin && <Route path="admin/saldo" element={<AdminBalancePage />} />}
+          {showAdmin && (
             <>
               <Route path="admin/users" element={<UsersPage />} />
               <Route path="admin/models" element={<ModelsPage />} />
@@ -65,15 +77,19 @@ function Routed() {
               <Route path="admin/status" element={<StatusPage />} />
             </>
           )}
-          <Route path="*" element={<Navigate to="/app" replace />} />
+          <Route path="*" element={<Navigate to={start} replace />} />
         </Route>
-        <Route path="*" element={<Navigate to="/app" replace />} />
+        <Route path="*" element={<Navigate to={start} replace />} />
       </Routes>
     </Suspense>
   )
 }
 
 export default function App() {
+  if (getSurface() === 'public' && window.location.pathname !== '/pricing') {
+    window.location.replace(siteLinks().dashboard)
+    return <div className="status-page">Membuka dashboard…</div>
+  }
   return (
     <BrowserRouter>
       <Suspense fallback={<div className="status-page">Memuat…</div>}>
