@@ -1,6 +1,6 @@
 # TASK-006 — Deploy the portal to CT 301
 
-Status: target staged and validated; production is not live. Steps 1–3 complete. Google client/IdP and the dedicated tunnel exist. Access app permissions need a connection reload; DNS and activation are pending. The owner changed domains to public `atheena.online`, member `dashboard.atheena.online`, admin `console.atheena.online`, and approved replacing the existing apex website when ready.
+Status: production is live on the three approved domains. Google owner login, console, public inference, OpenCode, streaming, usage, key revocation and database restore have passed. Final compatibility verification remains open: default Python urllib receives Cloudflare 1010. The owner reported a scoped Browser Integrity Check rule was enabled, but the subsequent check still returned403. MCP lacks Rulesets permission and the browser permission gate still blocks dash.cloudflare.com. Do not mark this remaining check complete. Google OAuth remains in Testing; sales/payment/package entitlements are not enabled.
 
 The owner selected CT 301 (`10.10.10.31`, `/opt/atheena`) and asked for SSH via CT 300. Current owner instructions supersede historical VM 999/CT 110 restrictions in project documents. CT 100 must not be accessed. CT 102 remains the existing isolated preview.
 

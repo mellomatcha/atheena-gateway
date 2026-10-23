@@ -1,8 +1,18 @@
-# CT 301 deployment preparation — 23 October 2026
+# CT 301 production deployment — 23 October 2026
 
 Production target: CT 301, hostname `portal`, LAN `10.10.10.31`, source and public assets `/opt/atheena`, owner `deploy` (UID 1000, Docker group). Docker 29.8.1 and Compose v5.5.1 were already installed. The destination and container inventory were empty before staging.
 
-## Current verified state
+## Current verified state (public activation)
+
+Production is live with six containers: API, worker, PostgreSQL 16, Redis 7, Caddy and cloudflared. Fresh `.env.production` is mode 0600, uses distinct dashboard/console Access audiences, and disables development login. A dedicated official 9Router key serves this deployment. No sandbox data was copied.
+
+The public apex and both private hostnames point to the dedicated CT301 tunnel. Google login has completed in the owner's browser for dashboard and console; separate member/admin navigation is visible. Anonymous API requests receive JSON 401 when the client passes Cloudflare's browser check. Real OpenAI completion, SSE, Anthropic completion, token accounting and Windows OpenCode have passed public tests:7 successful requests,10,433 tokens. The temporary QA key was revoked and immediately returned 401. The Python default user-agent encountered Cloudflare 1010; the owner reported enabling a scoped rule, but verification still returns 403. This remains unresolved, not an API-key failure.
+
+The database contains only the owner, the17-model CLI catalog (3 inference-verified entries active), default settings and production QA metadata. There is a labelled Rp 10,000 owner testing adjustment; sales/payments/entitlements remain disabled. Google OAuth remains in Testing, with the owner registered.
+
+Backup/restore into an isolated database passed, including migration and user/model counts; daily local backups are scheduled. See `RUNBOOK.md` for operations, onboarding, backup and remaining release boundaries.
+
+## Historical staging evidence
 
 - Application source, Docker context exclusions and built frontend are staged. No sandbox environment, users, keys, balances, database or Redis data were copied.
 - Application image `atheena-api:local` built successfully on CT 301; image ID `sha256:0b307dff3b0c9edf6787cfa9c9da885da0552ce928219d68909af32919ed9828`.
@@ -30,7 +40,7 @@ ssh -i /root/.ssh/atheena-portal-301 \
 
 This connection returned hostname `portal`. From that session, the official gateway at `http://10.10.10.30:20129/v1/models` returned 401 without an API key: network connectivity and the authentication gate are working. This is not yet a production inference test.
 
-## Cloudflare continuation
+## Historical Cloudflare connection notes
 
 The official MCP endpoint `https://mcp.cloudflare.com/mcp` was added as `cloudflare` to the PC's Codex configuration. OAuth completed successfully with read/write permissions scoped to DNS, Tunnel and Access plus account discovery. The owner supplied their admin email; it is retained in the private workspace deployment notes, not this repository.
 
