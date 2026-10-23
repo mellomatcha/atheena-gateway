@@ -1,6 +1,6 @@
 # Cloudflare production handoff
 
-Status 23 October 2026: prepared, not published. The owner confirmed Access is not configured.
+Status 23 October 2026: production is not published. The owner selected CT 301 (`10.10.10.31`, `/opt/atheena`) and completed OAuth login to the official Cloudflare MCP on the Windows PC. Access, DNS and the tunnel still require configuration and verification; OAuth success does not imply these resources exist.
 The working CT 102 instance is an isolated sandbox; never attach a public tunnel to its development-auth service.
 
 ## Account setup
@@ -14,7 +14,7 @@ The environment template is `deploy/production.env.example`; copy it to `.env.pr
 
 ## Before first production run
 
-- Select a deployment target explicitly. This session deploys only to the isolated CT 102 sandbox. CT 100 must not be touched.
+- Deploy to the owner's selected CT 301, `/opt/atheena`, using its existing `deploy` user and Docker Compose. Connect via the dedicated CT 300 SSH key. CT 102 remains the isolated preview. CT 100 must not be touched.
 - Use a fresh production database, real owner identity, dedicated upstream key, and audited initial balance. Do not carry over sandbox credentials, balances, or test users.
 - Run migrations before API/worker, initialize the owner and selected current models, then verify Google login, member/admin separation, key revocation, streaming and usage.
 - Verify database backup and restore to a separate database. Scheduled backups and production recovery remain part of deployment.

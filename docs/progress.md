@@ -435,3 +435,13 @@ Preview: `http://127.0.0.1:4173/` through SSH; `scripts/Start-SandboxPreview.ps1
 Production Caddy/compose and Cloudflare environment template prepared and configuration-validated, **not deployed**. Owner answered that Cloudflare Access is not set up. Remaining: Google identity/allowlist/AUD, tunnel/public hostname, real QRIS, production backup/restore checks and target deployment. See `docs/cloudflare-setup.md`.
 
 Visual browser QA remains unverified: the browser tool rejected private/local origins; no alternate browser automation was used. TASK-005's visual acceptance is therefore still pending even though its implementation and functional checks pass. Earlier environment/CT 110/VM 999 notes above describe historical work, not the current sandbox.
+
+## 23 October 2026 — CT 301 preparation and Cloudflare connection
+
+The owner subsequently selected the now-running CT 301 (`10.10.10.31`, `/opt/atheena`) for production and requested SSH via CT 300. Read-only inventory confirmed Docker/Compose, an existing `deploy` user in the Docker group, and an empty target. Added only the two missing guest firewall rules (CT 300 to CT 301 TCP 22; CT 301 to CT 300 TCP 20129) after backups. Set up a dedicated source-restricted SSH key and pinned host key. SSH and anonymous upstream 401 were verified. CT 100 was not accessed.
+
+Staged source and built assets, built `atheena-api:local`, pulled service images, and validated production Compose/Caddy. Extended Docker ignore rules to exclude all environment variants and included those rules in the deployment package. No production services, database, secrets or tunnel have been started. Sandbox data and credentials were not copied.
+
+Added official Cloudflare OAuth MCP to the Windows Codex configuration. Owner completed login and supplied their admin email. Cloudflare tools are not yet exposed to this running chat; the documented local socket refresh was unavailable. App MCP reload is required before account/zone/Access/tunnel setup can continue. This is an integration-loading limitation, not an OAuth failure. See `docs/ct301-deployment.md` for exact handoff and validation evidence.
+
+The existing localhost preview was rechecked: homepage 200, anonymous dashboard 401, authenticated dashboard/profile 200 with active admin. The owner's recurring browser password prompt remains pending manual confirmation with the sandbox username/password; production Google login is not configured yet.

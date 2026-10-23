@@ -1,0 +1,39 @@
+# CT 301 deployment preparation — 23 October 2026
+
+Production target: CT 301, hostname `portal`, LAN `10.10.10.31`, source and public assets `/opt/atheena`, owner `deploy` (UID 1000, Docker group). Docker 29.8.1 and Compose v5.5.1 were already installed. The destination and container inventory were empty before staging.
+
+## Current verified state
+
+- Application source, Docker context exclusions and built frontend are staged. No sandbox environment, users, keys, balances, database or Redis data were copied.
+- Application image `atheena-api:local` built successfully on CT 301; image ID `sha256:0b307dff3b0c9edf6787cfa9c9da885da0552ce928219d68909af32919ed9828`.
+- PostgreSQL 16, Redis 7, Caddy 2 and cloudflared images downloaded. Production Compose validates against the non-secret example, using `config --no-env-resolution --quiet`; Caddy validates successfully.
+- No production containers are running and `.env.production` does not exist yet. The public hostname is not deployed by this work.
+- The existing CT 102 preview remains `http://127.0.0.1:4173/app` through the PC's local SSH tunnel. HTTP checks returned 401 anonymously, 200 with the protected sandbox credentials, and an active admin from `/app/api/me`. The owner's repeated browser prompt has not been independently reproduced; it must not be reported as fixed merely because HTTP authentication passed.
+
+## Network and deployment access
+
+Two narrow rules were added without changing existing rules or restarting the global firewall:
+
+- CT 301 permits `10.10.10.30` to TCP 22.
+- CT 300 permits `10.10.10.31` to TCP 20129.
+
+Original guest firewall files are backed up on the Proxmox host under `/var/backups/atheena-portal/20261023T064938Z/`. No CT 100 access occurred.
+
+On CT 300, the dedicated private deployment key is `/root/.ssh/atheena-portal-301`, mode 0600. The CT 301 host key is pinned in the adjacent `.known_hosts` file using the trusted host console's copy. Its public key is authorized only for `deploy`, restricted to source `10.10.10.30` with SSH forwarding/PTY restrictions. From CT 300:
+
+```sh
+ssh -i /root/.ssh/atheena-portal-301 \
+  -o IdentitiesOnly=yes -o BatchMode=yes -o StrictHostKeyChecking=yes \
+  -o UserKnownHostsFile=/root/.ssh/atheena-portal-301.known_hosts \
+  deploy@10.10.10.31
+```
+
+This connection returned hostname `portal`. From that session, the official gateway at `http://10.10.10.30:20129/v1/models` returned 401 without an API key: network connectivity and the authentication gate are working. This is not yet a production inference test.
+
+## Cloudflare continuation
+
+The official MCP endpoint `https://mcp.cloudflare.com/mcp` was added as `cloudflare` to the PC's Codex configuration. OAuth completed successfully with read/write permissions scoped to DNS, Tunnel and Access plus account discovery. The owner supplied their admin email; it is retained in the private workspace deployment notes, not this repository.
+
+Cloudflare tools are not yet visible to the running chat. An attempt to refresh via the documented local control socket failed because the socket was unavailable. Reload the MCP connection in the app (or restart the app and reopen this same chat), then verify tool discovery and account/zone access before creating resources. Do not read or copy OAuth token storage to bypass connection setup.
+
+Next: inspect existing account/zone/tunnel/Access resources; configure only `ai.atheena.online`; protect `/app` and `/app/*` while leaving personal-key `/v1/*` available; provision fresh production secrets and owner; migrate; start; verify browser login, inference, streaming, usage and backup restore. Keep payments disabled. See `cloudflare-setup.md` and `tasks/TASK-006.md`.
