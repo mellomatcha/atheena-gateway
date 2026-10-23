@@ -457,3 +457,5 @@ Validation on the owner's PC and isolated CT102: 193 backend tests passed (20.26
 Cloudflare MCP tools still are not exposed in this chat after previously completed OAuth. The public domain, Google/Access login and final public E2E QA remain pending connection reload. Do not describe CT301 staged files as a live public deployment.
 
 HTTP QA after activation passed: public homepage/pricing/catalog/theme assets return 200, all three SPA asset references load anonymously, all three requested base prices match, authenticated profile returns separate full_name/username, leaderboard omits full_name/display_name, and anonymous dashboard/API access is rejected. No AI inference was needed for this presentation change.
+
+CT301 staging completed through CT300 after validation: source commit 67377a6 and latest built assets are in /opt/atheena; atheena-api:local rebuilt successfully (image sha256:6ca5538725cda8a7e667ddb9a839fe9470fafc1975e0c8720b9f6cecc81cd1bd); production Caddy validation passed. No production containers started, no production secrets provisioned, and no sandbox data copied. Working tree saved to the private development branch.
