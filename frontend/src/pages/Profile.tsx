@@ -5,7 +5,8 @@ import { useMe } from '../session-context'
 
 export function ProfilePage() {
   const { me, refresh } = useMe()
-  const [name, setName] = useState(me.display_name)
+  const [name, setName] = useState(me.full_name)
+  const [username, setUsername] = useState(me.username)
   const [threshold, setThreshold] = useState(me.low_balance_threshold_idr)
   const [optOut, setOptOut] = useState(me.leaderboard_opt_out)
   const [saving, setSaving] = useState(false)
@@ -18,7 +19,12 @@ export function ProfilePage() {
     try {
       await api<Me>('/me', {
         method: 'PATCH',
-        body: { display_name: name.trim(), low_balance_threshold_idr: threshold, leaderboard_opt_out: optOut },
+        body: {
+          full_name: name.trim(),
+          username: username.trim(),
+          low_balance_threshold_idr: threshold,
+          leaderboard_opt_out: optOut,
+        },
       })
       await refresh()
       setMessage({ ok: true, text: 'Pengaturan disimpan.' })
@@ -39,8 +45,31 @@ export function ProfilePage() {
       </header>
       <form className="profile-form" onSubmit={(e) => void save(e)}>
         <label className="field">
-          <span className="field__label">Nama tampilan (dipakai di leaderboard)</span>
-          <input className="input" required maxLength={60} value={name} onChange={(e) => setName(e.target.value)} />
+          <span className="field__label">Nama lengkap</span>
+          <input
+            className="input"
+            required
+            maxLength={60}
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+          />
+          <small className="muted">Privat. Tidak ditampilkan di leaderboard.</small>
+        </label>
+        <label className="field">
+          <span className="field__label">Username publik</span>
+          <input
+            className="input"
+            autoComplete="username"
+            required
+            minLength={3}
+            maxLength={24}
+            pattern="[a-z][a-z0-9_]{2,23}"
+            value={username}
+            onChange={(e) => setUsername(e.target.value.toLowerCase())}
+          />
+          <small className="muted">
+            3–24 karakter: huruf, angka, underscore. Ini yang muncul di leaderboard.
+          </small>
         </label>
         <label className="field">
           <span className="field__label">Peringatkan saya saat saldo di bawah (Rupiah)</span>
@@ -53,7 +82,7 @@ export function ProfilePage() {
         </label>
         <label className="check">
           <input type="checkbox" checked={optOut} onChange={(e) => setOptOut(e.target.checked)} />
-          Sembunyikan nama saya dari leaderboard
+          Sembunyikan username saya dari leaderboard
         </label>
         {message && (
           <p className={`notice ${message.ok ? 'notice--ok' : 'notice--error'}`} role="status">
@@ -61,7 +90,11 @@ export function ProfilePage() {
           </p>
         )}
         <p>
-          <button type="submit" className="button button--primary" disabled={saving || !name.trim()}>
+          <button
+            type="submit"
+            className="button button--primary"
+            disabled={saving || !name.trim()}
+          >
             {saving ? 'Menyimpan…' : 'Simpan pengaturan'}
           </button>
         </p>

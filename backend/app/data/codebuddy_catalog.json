@@ -1,0 +1,194 @@
+{
+  "source": "@tencent-ai/codebuddy-code",
+  "version": "2.173.0",
+  "captured_at": "2026-10-23T07:20:21.205928+00:00",
+  "models": [
+    {
+      "id": "deepseek-v4.1-flash",
+      "name": "Deepseek-V4.1-Flash",
+      "provider": "DeepSeek",
+      "multiplier": "0.00",
+      "context_window": 1000000,
+      "supports_images": true,
+      "supports_reasoning": true,
+      "gateway_listed": true,
+      "inference_verified": true
+    },
+    {
+      "id": "deepseek-v4.1-flash-sg",
+      "name": "Deepseek-V4.1-Flash \u00b7 SG",
+      "provider": "DeepSeek",
+      "multiplier": "0.03",
+      "context_window": 1000000,
+      "supports_images": true,
+      "supports_reasoning": true,
+      "gateway_listed": false,
+      "inference_verified": true
+    },
+    {
+      "id": "gpt-6-astra",
+      "name": "GPT-6-Astra",
+      "provider": "OpenAI",
+      "multiplier": "6.67",
+      "context_window": 1000000,
+      "supports_images": true,
+      "supports_reasoning": true,
+      "gateway_listed": false,
+      "inference_verified": false
+    },
+    {
+      "id": "hy4-preview",
+      "name": "Hy4 preview",
+      "provider": "Tencent",
+      "multiplier": "0.29",
+      "context_window": 1000000,
+      "supports_images": true,
+      "supports_reasoning": true,
+      "gateway_listed": false,
+      "inference_verified": false
+    },
+    {
+      "id": "hy3",
+      "name": "Hy3",
+      "provider": "Tencent",
+      "multiplier": "0.00",
+      "context_window": 192000,
+      "supports_images": true,
+      "supports_reasoning": true,
+      "gateway_listed": false,
+      "inference_verified": false
+    },
+    {
+      "id": "kimi-k2.8-preview",
+      "name": "Kimi-K2.8-Preview",
+      "provider": "Moonshot",
+      "multiplier": "0.77",
+      "context_window": 1000000,
+      "supports_images": true,
+      "supports_reasoning": true,
+      "gateway_listed": false,
+      "inference_verified": false
+    },
+    {
+      "id": "gpt-5.6-sol",
+      "name": "GPT-5.6-Sol",
+      "provider": "OpenAI",
+      "multiplier": "3.47",
+      "context_window": 1000000,
+      "supports_images": true,
+      "supports_reasoning": true,
+      "gateway_listed": false,
+      "inference_verified": false
+    },
+    {
+      "id": "gpt-5.6-terra",
+      "name": "GPT-5.6-Terra",
+      "provider": "OpenAI",
+      "multiplier": "1.39",
+      "context_window": 1000000,
+      "supports_images": true,
+      "supports_reasoning": true,
+      "gateway_listed": false,
+      "inference_verified": false
+    },
+    {
+      "id": "gpt-5.6-luna",
+      "name": "GPT-5.6-Luna",
+      "provider": "OpenAI",
+      "multiplier": "0.14",
+      "context_window": 1000000,
+      "supports_images": true,
+      "supports_reasoning": true,
+      "gateway_listed": false,
+      "inference_verified": false
+    },
+    {
+      "id": "gpt-5.5",
+      "name": "GPT-5.5",
+      "provider": "OpenAI",
+      "multiplier": "3.31",
+      "context_window": 1000000,
+      "supports_images": true,
+      "supports_reasoning": true,
+      "gateway_listed": false,
+      "inference_verified": false
+    },
+    {
+      "id": "gpt-5.4",
+      "name": "GPT-5.4",
+      "provider": "OpenAI",
+      "multiplier": "1.65",
+      "context_window": 272000,
+      "supports_images": true,
+      "supports_reasoning": true,
+      "gateway_listed": false,
+      "inference_verified": false
+    },
+    {
+      "id": "gemini-3.5-flash",
+      "name": "Gemini-3.5-Flash",
+      "provider": "Google",
+      "multiplier": "0.99",
+      "context_window": 1000000,
+      "supports_images": true,
+      "supports_reasoning": true,
+      "gateway_listed": false,
+      "inference_verified": false
+    },
+    {
+      "id": "glm-5.3-flash",
+      "name": "GLM-5.3-Flash",
+      "provider": "Z.ai",
+      "multiplier": "0.06",
+      "context_window": 1000000,
+      "supports_images": true,
+      "supports_reasoning": true,
+      "gateway_listed": false,
+      "inference_verified": true
+    },
+    {
+      "id": "glm-5.3",
+      "name": "GLM-5.3",
+      "provider": "Z.ai",
+      "multiplier": "0.79",
+      "context_window": 1000000,
+      "supports_images": true,
+      "supports_reasoning": true,
+      "gateway_listed": false,
+      "inference_verified": false
+    },
+    {
+      "id": "glm-5.2",
+      "name": "GLM-5.2",
+      "provider": "Z.ai",
+      "multiplier": "0.79",
+      "context_window": 1000000,
+      "supports_images": true,
+      "supports_reasoning": true,
+      "gateway_listed": true,
+      "inference_verified": false
+    },
+    {
+      "id": "kimi-k3",
+      "name": "Kimi-K3",
+      "provider": "Moonshot",
+      "multiplier": "1.62",
+      "context_window": 1000000,
+      "supports_images": true,
+      "supports_reasoning": true,
+      "gateway_listed": false,
+      "inference_verified": false
+    },
+    {
+      "id": "kimi-k2.6",
+      "name": "Kimi-K2.6",
+      "provider": "Moonshot",
+      "multiplier": "0.52",
+      "context_window": 256000,
+      "supports_images": true,
+      "supports_reasoning": true,
+      "gateway_listed": true,
+      "inference_verified": false
+    }
+  ]
+}

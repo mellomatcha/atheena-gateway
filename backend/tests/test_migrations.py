@@ -1,11 +1,12 @@
+import asyncio
 from datetime import UTC, datetime
 
 from alembic import command
 from sqlalchemy import text
-from sqlalchemy.ext.asyncio import AsyncConnection
+from sqlalchemy.ext.asyncio import AsyncConnection, create_async_engine
 
 from app.ids import new_id
-from tests.conftest import alembic_config
+from tests.conftest import TEST_DATABASE_URL, alembic_config
 
 PRD_TABLES = {
     "users",
@@ -78,3 +79,42 @@ def test_downgrade_and_upgrade_roundtrip() -> None:
     command.downgrade(config, "base")
     command.upgrade(config, "head")
     command.check(config)
+
+
+def test_username_upgrade_preserves_existing_profile_without_exposing_name() -> None:
+    config = alembic_config()
+    user_id = new_id()
+
+    async def before() -> None:
+        engine = create_async_engine(TEST_DATABASE_URL)
+        async with engine.begin() as conn:
+            await conn.execute(
+                text("INSERT INTO users (id, email, display_name) VALUES (:id, :email, :name)"),
+                {
+                    "id": user_id,
+                    "email": f"migration-{user_id}@example.test",
+                    "name": "Private Name",
+                },
+            )
+        await engine.dispose()
+
+    async def after() -> None:
+        engine = create_async_engine(TEST_DATABASE_URL)
+        async with engine.begin() as conn:
+            row = (
+                await conn.execute(
+                    text("SELECT username, display_name FROM users WHERE id=:id"), {"id": user_id}
+                )
+            ).one()
+            assert row.display_name == "Private Name"
+            assert row.username.startswith("ath_") and len(row.username) == 24
+            assert "private" not in row.username.lower()
+            await conn.execute(text("DELETE FROM users WHERE id=:id"), {"id": user_id})
+        await engine.dispose()
+
+    command.downgrade(config, "0001")
+    try:
+        asyncio.run(before())
+    finally:
+        command.upgrade(config, "head")
+    asyncio.run(after())

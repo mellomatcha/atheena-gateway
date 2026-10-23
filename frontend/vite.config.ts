@@ -11,6 +11,7 @@ export default defineConfig({
   server: {
     proxy: {
       '/app/api': api,
+      '/api/public': api,
       '/v1': api,
     },
   },

@@ -1,6 +1,7 @@
 import { Link, NavLink, Outlet } from 'react-router'
 import { formatIDR, formatNumber } from '../format'
 import { useMe } from '../session-context'
+import { ThemeToggle } from './ThemeToggle'
 
 export function Shell() {
   const { me } = useMe()
@@ -29,6 +30,7 @@ export function Shell() {
             Ringkasan
           </NavLink>
           <NavLink to="/app/keys">API key</NavLink>
+          <NavLink to="/app/paket">Paket & kalkulator</NavLink>
           <NavLink to="/app/mulai">Mulai</NavLink>
           <NavLink to="/app/topup">Top-up</NavLink>
           <NavLink to="/app/leaderboard">Leaderboard</NavLink>
@@ -50,11 +52,11 @@ export function Shell() {
           <span className="badge">
             {me.role} / {me.tier}
           </span>
-          <br />
-          {me.display_name}
+          <br />@{me.username}
           <br />
           {me.email}
         </p>
+        <ThemeToggle />
       </aside>
       <main className="main" id="konten" tabIndex={-1}>
         {low && (
@@ -65,6 +67,10 @@ export function Shell() {
           </p>
         )}
         <Outlet />
+        <footer className="workspace-footer">
+          <span>ATHEENA © 2026 · Kecerdasan dengan arah.</span>
+          <a href="/pricing">Paket & model ↗</a>
+        </footer>
       </main>
     </div>
   )

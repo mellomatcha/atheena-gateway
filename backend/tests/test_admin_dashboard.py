@@ -214,7 +214,12 @@ async def test_leaderboard_privacy_and_efficiency_threshold(gateway_factory: Cli
         await data.execute("UPDATE users SET leaderboard_opt_out=true WHERE id=:u", u=hidden)
         model = await data.model()
         for user, count in ((eligible, 100), (small, 99), (hidden, 101), (suspended, 102)):
-            await data.execute("UPDATE users SET display_name=:n WHERE id=:u", u=user, n=str(user))
+            await data.execute(
+                "UPDATE users SET display_name=:n, username=:handle WHERE id=:u",
+                u=user,
+                n="Private Full Name",
+                handle="u_" + user.hex[:20],
+            )
             for _ in range(count):
                 await data.request(
                     user_id=user, model=model, started_at=datetime.now(UTC), tokens=(50, 10, 0, 50)
@@ -225,13 +230,16 @@ async def test_leaderboard_privacy_and_efficiency_threshold(gateway_factory: Cli
             efficient = (
                 await client.get("/app/api/leaderboard", params={"metric": "efficiency"})
             ).json()
-            names = {r["display_name"] for r in efficient["entries"]}
-            assert str(eligible) in names
-            assert not {str(small), str(hidden), str(suspended)} & names
+            names = {r["username"] for r in efficient["entries"]}
+            assert "u_" + eligible.hex[:20] in names
+            assert not {"u_" + u.hex[:20] for u in (small, hidden, suspended)} & names
             me = next(r for r in efficient["entries"] if r["is_me"])
             assert me["value"] == 0.5
             ordinary = (await client.get("/app/api/leaderboard")).json()
-            assert str(small) in {r["display_name"] for r in ordinary["entries"]}
+            assert "u_" + small.hex[:20] in {r["username"] for r in ordinary["entries"]}
+            assert "Private Full Name" not in str(ordinary)
+            assert "display_name" not in str(ordinary)
+            assert "full_name" not in str(ordinary)
             assert "@example.test" not in str(ordinary)
 
 

@@ -71,7 +71,7 @@ export function RequestTable({ rows, page, pageSize, total, onPage, showUser = f
                       </span>
                     )}
                   </td>
-                  <td className="num right">{formatIDR(row.cost_idr)}</td>
+                  <td className="num right money">{formatIDR(row.cost_idr)}</td>
                   <td className="num right muted">
                     {formatMs(row.latency_ms)}
                     {row.ttft_ms !== null && row.stream && (

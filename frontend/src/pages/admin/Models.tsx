@@ -240,8 +240,8 @@ export function ModelsPage() {
                     <br />
                     {m.min_tier}
                   </td>
-                  <td className="num">{formatIDR(Number(m.price_input_per_m))}</td>
-                  <td className="num">{formatIDR(Number(m.price_output_per_m))}</td>
+                  <td className="num money">{formatIDR(Number(m.price_input_per_m))}</td>
+                  <td className="num money">{formatIDR(Number(m.price_output_per_m))}</td>
                   <td>{m.is_active ? 'Aktif' : 'Nonaktif'}</td>
                   <td>
                     <button className="button" onClick={() => setDraft(m)}>

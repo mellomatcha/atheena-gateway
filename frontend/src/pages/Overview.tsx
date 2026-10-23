@@ -23,7 +23,7 @@ function Stat({ label, totals }: { label: string; totals: Totals | undefined }) 
   return (
     <div className="stat">
       <dt className="stat__label">{label}</dt>
-      <dd className="stat__value num">{totals ? formatIDR(totals.cost_idr) : '…'}</dd>
+      <dd className="stat__value num money">{totals ? formatIDR(totals.cost_idr) : '…'}</dd>
       <dd className="stat__sub num muted">
         {totals
           ? `${formatNumber(totals.tokens)} token, ${formatNumber(totals.requests)} request`
@@ -67,7 +67,7 @@ export function OverviewPage() {
           <h1>
             Selamat datang,
             <br />
-            {me.display_name}.
+            {me.full_name}.
           </h1>
           <p>Model pilihanmu. Kendali di tanganmu.</p>
           <Link className="button button--primary" to="/app/keys">

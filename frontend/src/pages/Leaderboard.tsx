@@ -10,7 +10,7 @@ interface Board {
   end: string
   me_opted_out: boolean
   efficiency_min_requests: number
-  entries: { rank: number; display_name: string; value: number; requests: number; is_me: boolean }[]
+  entries: { rank: number; username: string; value: number; requests: number; is_me: boolean }[]
 }
 export function LeaderboardPage() {
   const [period, setPeriod] = useState('week')
@@ -28,7 +28,7 @@ export function LeaderboardPage() {
     <div className="page">
       <PageHead
         title="Leaderboard"
-        description="Lihat aktivitas workspace. Hanya nama tampilan yang dibagikan; keikutsertaan bisa diatur dari profil."
+        description="Lihat aktivitas workspace. Hanya username yang dibagikan; nama lengkap dan email tetap privat."
       />
       <div className="filters__row">
         <Field label="Periode">
@@ -67,7 +67,7 @@ export function LeaderboardPage() {
               <thead>
                 <tr>
                   <th>Peringkat</th>
-                  <th>Nama</th>
+                  <th>Username</th>
                   <th className="right">{labels[metric]}</th>
                   <th className="right">Request</th>
                 </tr>
@@ -77,7 +77,7 @@ export function LeaderboardPage() {
                   <tr key={e.rank} className={e.is_me ? 'row--me' : ''}>
                     <td className="num">{String(e.rank).padStart(2, '0')}</td>
                     <td>
-                      <strong>{e.display_name}</strong>
+                      <strong>@{e.username}</strong>
                       {e.is_me && <span className="badge">Anda</span>}
                     </td>
                     <td className="num right">

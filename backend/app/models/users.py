@@ -30,10 +30,15 @@ class User(IdMixin, TimestampMixin, Base):
         CheckConstraint(check_in("status", USER_STATUSES), name="status"),
         # Emails are compared case-insensitively; store them normalized.
         CheckConstraint("email = lower(email)", name="email_lowercase"),
+        CheckConstraint("username ~ '^[a-z][a-z0-9_]{2,23}$'", name="username_format"),
     )
 
     email: Mapped[str] = mapped_column(Text, unique=True)
     display_name: Mapped[str] = mapped_column(Text)
+    # Profile names stay private; only this unique handle is used on leaderboards.
+    username: Mapped[str] = mapped_column(
+        Text, unique=True, server_default=text("'ath_' || substr(md5(random()::text), 1, 20)")
+    )
     role: Mapped[str] = mapped_column(Text, server_default="member")
     tier: Mapped[str] = mapped_column(Text, server_default="basic")
     status: Mapped[str] = mapped_column(Text, server_default="pending")
@@ -42,6 +47,11 @@ class User(IdMixin, TimestampMixin, Base):
     low_balance_threshold_idr: Mapped[int] = mapped_column(BigInteger, server_default=text("10000"))
     daily_cap_idr: Mapped[int | None] = mapped_column(BigInteger)
     leaderboard_opt_out: Mapped[bool] = mapped_column(server_default=false())
+
+    @property
+    def full_name(self) -> str:
+        """Expose the private profile name without changing existing database clients."""
+        return self.display_name
 
 
 class ApiKey(IdMixin, TimestampMixin, Base):

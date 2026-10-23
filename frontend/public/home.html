@@ -5,13 +5,15 @@
   <title>ATHEENA — Kecerdasan dengan arah.</title>
   <meta name="description" content="Satu gerbang untuk model AI dan alat pilihanmu. ATHEENA: tegas berpikir, bijak bertindak.">
   <meta name="theme-color" content="#eeeade"><link rel="icon" href="/brand/mark.svg" type="image/svg+xml">
-  <link rel="stylesheet" href="/brand/style.css"><script src="/brand/app.js" defer></script>
+  <script src="/brand/theme.js"></script>
+  <link rel="stylesheet" href="/brand/style.css"><link rel="stylesheet" href="/brand/market.css"><script src="/brand/app.js" defer></script><script src="/brand/market.js" defer></script>
 </head>
 <body>
 <a class="skip" href="#main">Lewati ke konten</a>
 <header class="nav wrap">
   <a class="brand" href="/" aria-label="ATHEENA, beranda"><img src="/brand/mark.svg" alt="" width="33" height="38"><span>ATHEENA</span></a>
-  <nav aria-label="Navigasi utama"><a href="#filosofi">Filosofi</a><a href="#mulai">Integrasi <span aria-hidden="true">↗</span></a></nav>
+  <nav aria-label="Navigasi utama"><a href="#filosofi">Filosofi</a><a href="#models">Model</a><a href="/pricing">Paket & harga</a></nav>
+  <label class="theme-control"><span aria-hidden="true">◐</span><select data-theme-select aria-label="Tema"><option value="system">Perangkat</option><option value="light">Terang</option><option value="dark">Gelap</option></select></label>
   <a class="button nav-login" href="/app">Masuk <span aria-hidden="true">↗</span></a>
 </header>
 <main id="main">
@@ -40,16 +42,24 @@
     <article><span class="feature-number mono">II.</span><h3>Alur kerjamu sendiri.</h3><p>Hubungkan ke OpenCode atau klien yang mendukung API OpenAI-compatible. Mulai dari alat yang sudah kamu kenal.</p><span class="feature-foot mono">BUILD / LANJUTKAN IDE <span aria-hidden="true">↗</span></span></article>
     <article><span class="feature-number mono">III.</span><h3>Kendali yang jelas.</h3><p>Kelola API key pribadi, lihat penggunaan, dan atur batas harian dari workspace. Admin mengatur akses dan katalog model.</p><span class="feature-foot mono">DIRECT / TENTUKAN ARAH <span aria-hidden="true">↗</span></span></article>
   </section>
+  <section class="market wrap" id="models" aria-labelledby="models-title">
+    <div class="market-heading"><div><p class="eyebrow">02 / TEMUKAN PERSPEKTIFMU</p><h2 id="models-title">Banyak pikiran.<br><em>Satu arah.</em></h2></div><div><p>Model pilihan untuk cara berpikirmu.<br>Jelajahi katalog, lalu temukan paketnya.</p><a class="text-link" href="/pricing">Paket & kalkulator <span aria-hidden="true">↗</span></a></div></div>
+    <div class="model-ribbon" aria-hidden="true"><div>THINK ✳ BUILD ✳ CREATE ✳ QUESTION ✳ THINK ✳ BUILD ✳ CREATE ✳ QUESTION ✳</div></div>
+    <div class="market-toolbar"><div data-provider-filters role="group" aria-label="Filter provider"></div><button class="motion-control" data-motion-control aria-pressed="false">Jeda animasi</button></div>
+    <p data-catalog-status role="status">Memuat katalog model…</p><div class="market-grid" data-model-grid></div>
+    <noscript><p>Katalog interaktif membutuhkan JavaScript. <a href="/pricing">Lihat halaman paket.</a></p></noscript>
+    <div class="market-bottom"><p data-catalog-source>Data model bersumber dari CB CLI.</p><a href="/pricing">Pilih modelmu ↗</a></div>
+  </section>
   <section class="integration" id="mulai" aria-labelledby="integration-title"><div class="wrap integration-grid">
-    <div class="integration-copy"><p class="eyebrow">02 / DARI IDE KE AKSI</p><h2 id="integration-title">Pilih alatmu.<br><em>Mulai berkarya.</em></h2><p>Masuk ke portal untuk mendapatkan API key. Tambahkan endpoint dan model ke klien pilihanmu, lalu mulai percakapan pertama.</p><a class="button cream" href="/app">Masuk ke portal <span aria-hidden="true">↗</span></a><p class="key-note">Gunakan API key pribadi, bukan password portal.</p></div>
+    <div class="integration-copy"><p class="eyebrow">03 / DARI IDE KE AKSI</p><h2 id="integration-title">Pilih alatmu.<br><em>Mulai berkarya.</em></h2><p>Masuk ke portal untuk mendapatkan API key. Tambahkan endpoint dan model ke klien pilihanmu, lalu mulai percakapan pertama.</p><a class="button cream" href="/app">Masuk ke portal <span aria-hidden="true">↗</span></a><p class="key-note">Gunakan API key pribadi, bukan password portal.</p></div>
     <div class="code-card"><div class="code-tabs" role="tablist" aria-label="Contoh integrasi"><button role="tab" aria-selected="true" aria-controls="code-panel" id="tab-opencode" data-client="opencode">OpenCode</button><button role="tab" aria-selected="false" aria-controls="code-panel" id="tab-curl" data-client="curl" tabindex="-1">cURL</button><button role="tab" aria-selected="false" aria-controls="code-panel" id="tab-python" data-client="python" tabindex="-1">Python</button></div><div class="code-label mono"><span id="code-filename">opencode.json</span><button class="copy-button" id="copy-code" aria-label="Salin contoh konfigurasi">Salin <span aria-hidden="true">⧉</span></button></div><pre id="code-panel" role="tabpanel" aria-labelledby="tab-opencode" tabindex="0"><code id="code-content">Memuat contoh integrasi…</code></pre><p class="code-foot"><span aria-hidden="true">↳</span> <span id="code-help">Simpan di folder proyek. Isi ATHEENA_API_KEY melalui environment.</span></p><span class="sr-only" id="copy-status" role="status"></span></div>
   </div></section>
-  <section class="faq wrap" aria-labelledby="faq-title"><div><p class="eyebrow">03 / SEBELUM MULAI</p><h2 id="faq-title">Sedikit<br><em>kejelasan.</em></h2></div><div class="faq-list">
+  <section class="faq wrap" aria-labelledby="faq-title"><div><p class="eyebrow">04 / SEBELUM MULAI</p><h2 id="faq-title">Sedikit<br><em>kejelasan.</em></h2></div><div class="faq-list">
     <details><summary>Apa itu ATHEENA?<span aria-hidden="true">+</span></summary><p>ATHEENA adalah pintu masuk untuk mengakses model AI melalui gateway 9Router resmi, dengan portal dan identitas visual kami sendiri. Model yang tersedia mengikuti koneksi provider yang diatur admin.</p></details>
     <details><summary>Apakah semua orang bisa membuat akun?<span aria-hidden="true">+</span></summary><p>Akses dikelola oleh admin. Akun workspace dan API key pribadi punya fungsi berbeda. Pendaftaran mandiri belum tersedia.</p></details>
-    <details><summary>Apa bedanya password dan API key?<span aria-hidden="true">+</span></summary><p>Password digunakan untuk masuk ke portal pengelolaan. API key digunakan oleh OpenCode atau aplikasi untuk memanggil model. Jangan membagikan keduanya atau memasukkan API key ke kode frontend publik.</p></details>
+    <details><summary>Apa bedanya login dan API key?<span aria-hidden="true">+</span></summary><p>Login mengidentifikasi akunmu di portal pengelolaan. API key digunakan oleh OpenCode atau aplikasi untuk memanggil model. Jaga sesi loginmu dan jangan memasukkan API key ke kode frontend publik.</p></details>
     <details><summary>Model apa yang bisa digunakan?<span aria-hidden="true">+</span></summary><p>Lihat daftar terbaru melalui endpoint <code>/v1/models</code> dengan API key yang valid. Contoh integrasi di halaman ini memakai <code>deepseek-v4.1-flash</code>, yang sudah diuji pada gateway ini. Ketersediaan model lain mengikuti provider.</p></details>
   </div></section>
 </main>
-<footer class="footer wrap"><div class="footer-top"><p>TEGAS BERPIKIR. BIJAK BERTINDAK.</p><a href="#main">Kembali ke atas <span aria-hidden="true">↑</span></a></div><div class="footer-wordmark" aria-hidden="true">ATHEENA<span>✳</span></div><div class="footer-bottom mono"><span>© 2026 ATHEENA</span><span>INDEPENDENT GATEWAY / POWERED BY 9ROUTER</span><a href="/app">PORTAL <span aria-hidden="true">↗</span></a></div></footer>
+<footer class="footer wrap"><div class="footer-top"><p>TEGAS BERPIKIR. BIJAK BERTINDAK.</p><a href="#main">Kembali ke atas <span aria-hidden="true">↑</span></a></div><nav class="footer-links" aria-label="Navigasi footer"><a href="#filosofi">Filosofi Athena</a><a href="#models">Jelajahi model</a><a href="/pricing">Paket & kalkulator</a><a href="#mulai">Panduan integrasi</a><a href="/app">Workspace ↗</a></nav><div class="footer-wordmark" aria-hidden="true">ATHEENA<span>✳</span></div><div class="footer-bottom mono"><span>© 2026 ATHEENA</span><span>INDEPENDENT GATEWAY / POWERED BY 9ROUTER</span><a href="/app">PORTAL <span aria-hidden="true">↗</span></a></div></footer>
 </body></html>

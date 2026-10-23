@@ -85,7 +85,7 @@ export function AdminBalancePage() {
                         <span className="muted">{user.email}</span>
                       </td>
                       <td className="muted">{user.status === 'active' ? 'Aktif' : user.status}</td>
-                      <td className="num right">{formatIDR(user.balance_idr)}</td>
+                      <td className="num right money">{formatIDR(user.balance_idr)}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -165,7 +165,7 @@ function UserBalance({ user, onChanged }: { user: UserSummary; onChanged: () => 
             <h2 id="saldo-user">{user.display_name}</h2>
             <p className="muted">{user.email}</p>
           </div>
-          <p className="user-balance__figure num">{formatIDR(done?.user.balance_idr ?? user.balance_idr)}</p>
+          <p className="user-balance__figure num money">{formatIDR(done?.user.balance_idr ?? user.balance_idr)}</p>
         </div>
 
         <form className="user-balance__form" onSubmit={onSubmit}>
@@ -233,7 +233,7 @@ function UserBalance({ user, onChanged }: { user: UserSummary; onChanged: () => 
           {done && !confirming && (
             <p className="notice notice--ok" role="status">
               Tersimpan. Saldo {done.user.display_name} sekarang{' '}
-              <span className="num">{formatIDR(done.balance_after_idr)}</span>.
+              <span className="num money">{formatIDR(done.balance_after_idr)}</span>.
             </p>
           )}
 
@@ -241,7 +241,7 @@ function UserBalance({ user, onChanged }: { user: UserSummary; onChanged: () => 
             <div className="confirm" role="alertdialog" aria-label="Konfirmasi">
               <p>
                 {signed < 0 ? 'Kurangi' : 'Tambah'}{' '}
-                <span className="num">{formatIDR(Math.abs(signed))}</span>{' '}
+                <span className="num money">{formatIDR(Math.abs(signed))}</span>{' '}
                 {signed < 0 ? 'dari' : 'ke'} saldo {user.display_name}?
               </p>
               <div className="chips">

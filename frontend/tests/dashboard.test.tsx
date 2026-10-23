@@ -22,6 +22,8 @@ const me: Me = {
   id: 'user-1',
   email: 'user@example.test',
   display_name: 'Dafin',
+  full_name: 'Dafin',
+  username: 'dafin',
   role: 'member',
   tier: 'basic',
   status: 'active',

@@ -45,10 +45,10 @@ export function LedgerTable({ items, page, pageSize, total, onPage, emptyText }:
                   {LABELS[entry.type]}
                   {entry.note && <span className="muted">: {entry.note}</span>}
                 </td>
-                <td className={`num right ${entry.amount_idr > 0 ? 'amount--credit' : ''}`}>
+                <td className={`num right money ${entry.amount_idr > 0 ? 'amount--credit' : ''}`}>
                   {formatSignedIDR(entry.amount_idr)}
                 </td>
-                <td className="num right ledger__after">
+                <td className="num right ledger__after money">
                   <span className="ledger__after-label muted">Saldo </span>
                   {formatIDR(entry.balance_after_idr)}
                 </td>

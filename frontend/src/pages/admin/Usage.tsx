@@ -27,7 +27,7 @@ function BreakdownTable({ rows }: { rows: Breakdown[] }) {
               <td>{r.label}</td>
               <td className="right num">{formatNumber(r.totals.requests)}</td>
               <td className="right num">{formatNumber(r.totals.tokens)}</td>
-              <td className="right num">{formatIDR(r.totals.cost_idr)}</td>
+              <td className="right num money">{formatIDR(r.totals.cost_idr)}</td>
             </tr>
           ))}
           {!rows.length && (
@@ -116,7 +116,7 @@ export function UsagePage() {
         <dl className="stats">
           <div className="stat">
             <dt className="stat__label">Biaya periode ini</dt>
-            <dd className="stat__value num">{formatIDR(summary.data.totals.cost_idr)}</dd>
+            <dd className="stat__value num money">{formatIDR(summary.data.totals.cost_idr)}</dd>
           </div>
           <div className="stat">
             <dt className="stat__label">Request</dt>

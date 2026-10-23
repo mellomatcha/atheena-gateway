@@ -1,0 +1,338 @@
+:root {
+  color-scheme: light;
+  --market-accent: #a94408;
+  --wash: #f6e4d2;
+}
+:root[data-theme='dark'] {
+  color-scheme: dark;
+  --paper: #121310;
+  --ink: #eeeade;
+  --red: #e97b46;
+  --muted: #b2b4a5;
+  --line: #47493f;
+  --white: #1d1f19;
+  --market-accent: #ffac6a;
+  --wash: #34261b;
+}
+.theme-control {
+  display: flex;
+  gap: 0.4rem;
+  align-items: center;
+  color: var(--market-accent);
+  font-size: 20px;
+}
+.theme-control select {
+  font: 12px var(--sans);
+  color: var(--ink);
+  border: 1px solid var(--line);
+  background: var(--paper);
+  padding: 8px 4px;
+  min-height: 40px;
+}
+.theme-control select:focus-visible {
+  outline: 2px solid var(--market-accent);
+  outline-offset: 4px;
+}
+.hero-art {
+  color: #1e211e;
+}
+.hero-art figcaption > span:first-child {
+  color: var(--ink);
+}
+[data-theme='dark'] .brand img {
+  filter: brightness(0) invert(0.9);
+}
+[data-theme='dark'] .primary {
+  background: var(--red);
+  color: #121310;
+}
+[data-theme='dark'] .integration {
+  background: #20251e;
+  color: #eeeade;
+}
+[data-theme='dark'] .cream {
+  background: #eeeade;
+  color: #1e211e;
+  border-color: #eeeade;
+}
+[data-theme='dark'] .code-tabs button[aria-selected='true'] {
+  background: #eeeade;
+  color: #1e211e;
+}
+[data-theme='dark'] .copy-button {
+  color: #eeeade;
+}
+.market {
+  padding: 0 0 90px;
+  scroll-margin-top: 2rem;
+}
+.market-heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: 3rem;
+  margin-bottom: 2.5rem;
+}
+.market-heading .eyebrow {
+  color: var(--market-accent);
+  margin-bottom: 1.5rem;
+}
+.market-heading > div:last-child {
+  max-width: 26rem;
+}
+.market-heading p:not(.eyebrow) {
+  color: var(--muted);
+  font-size: 15px;
+  line-height: 1.8;
+  margin-bottom: 1.5rem;
+}
+.model-ribbon {
+  border-block: 1px solid var(--ink);
+  padding: 17px 0;
+  overflow: hidden;
+  color: var(--market-accent);
+  margin: 2.8rem 0 2rem;
+  font: 16px var(--mono);
+  letter-spacing: 0.3em;
+}
+.model-ribbon > div {
+  width: max-content;
+  white-space: nowrap;
+  animation: ribbon-travel 28s linear infinite;
+  word-spacing: 2rem;
+}
+.motion-paused .model-ribbon > div {
+  animation-play-state: paused;
+}
+.market-toolbar {
+  display: flex;
+  align-items: flex-start;
+  gap: 1rem;
+  justify-content: space-between;
+  margin-bottom: 1.5rem;
+}
+[data-provider-filters] {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+[data-provider-filters] button,
+.motion-control {
+  background: transparent;
+  color: var(--muted);
+  border: 1px solid var(--line);
+  padding: 0.65rem 0.8rem;
+  min-height: 40px;
+  font-size: 12px;
+}
+[data-provider-filters] button[aria-pressed='true'] {
+  color: var(--market-accent);
+  background: var(--wash);
+  border-color: var(--market-accent);
+}
+.motion-control {
+  white-space: nowrap;
+  font-size: 11px;
+}
+[data-catalog-status] {
+  font: 12px var(--mono);
+  color: var(--muted);
+  margin: 1rem 0;
+}
+.market-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+.market-model {
+  border: 1px solid var(--line);
+  background: var(--white);
+  padding: 22px 18px;
+  min-height: 112px;
+  display: grid;
+  grid-template-columns: 38px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 13px;
+  transition:
+    transform 0.2s,
+    border-color 0.2s;
+}
+.market-model:hover {
+  transform: translateY(-4px);
+  border-color: var(--market-accent);
+}
+.market-icon {
+  font: 12px var(--mono);
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 44px;
+  border: 1px solid var(--line);
+}
+.market-model strong {
+  font-size: 14px;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+  display: block;
+}
+.market-model small {
+  color: var(--muted);
+  font-size: 10px;
+  line-height: 1.6;
+  display: block;
+  margin-top: 4px;
+}
+.market-multiplier {
+  font: 11px var(--mono);
+  color: var(--market-accent);
+}
+.market-bottom {
+  border-bottom: 1px solid var(--line);
+  padding: 1.5rem 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 2rem;
+}
+.market-bottom p {
+  color: var(--muted);
+  font: 11px/1.7 var(--mono);
+  max-width: 48rem;
+}
+.market-bottom a {
+  white-space: nowrap;
+  font-size: 13px;
+  font-weight: bold;
+}
+.footer-links {
+  display: flex;
+  gap: 2rem;
+  flex-wrap: wrap;
+  margin-top: 2.5rem;
+  font-size: 13px;
+}
+.hero-copy {
+  animation: reveal-copy 0.8s ease both;
+}
+.athena {
+  animation: reveal-athena 1.3s ease both;
+}
+@keyframes reveal-copy {
+  from {
+    opacity: 0;
+    transform: translateY(15px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+@keyframes reveal-athena {
+  from {
+    opacity: 0.25;
+    transform: translateY(18px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+@keyframes ribbon-travel {
+  to {
+    transform: translateX(-50%);
+  }
+}
+@media (max-width: 1100px) {
+  .nav nav {
+    gap: 20px;
+    margin-right: 0;
+  }
+  .nav {
+    gap: 16px;
+  }
+  .market-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+@media (max-width: 760px) {
+  .nav {
+    flex-wrap: wrap;
+    height: auto;
+    padding-block: 20px;
+  }
+  .nav nav {
+    order: 4;
+    width: 100%;
+    display: flex;
+    margin: 0;
+    justify-content: space-between;
+  }
+  .nav-login {
+    min-width: auto;
+    padding: 9px 12px;
+    min-height: 40px;
+    margin-left: auto;
+  }
+  .theme-control {
+    margin-left: auto;
+  }
+  .nav-login + .theme-control {
+    margin-left: 0;
+  }
+  .market-heading {
+    display: block;
+  }
+  .market-heading > div:last-child {
+    margin-top: 1.5rem;
+  }
+  .market-heading h2 {
+    font-size: 46px;
+  }
+  .market {
+    padding-bottom: 55px;
+  }
+  .market-bottom {
+    display: block;
+  }
+  .market-bottom a {
+    display: inline-block;
+    margin-top: 1rem;
+  }
+}
+@media (max-width: 520px) {
+  .market-grid {
+    grid-template-columns: 1fr;
+  }
+  .market-toolbar {
+    flex-direction: column;
+  }
+  .market-model {
+    min-height: 100px;
+  }
+  .brand {
+    font-size: 22px;
+    gap: 6px;
+  }
+  .nav {
+    gap: 10px;
+  }
+  .theme-control select {
+    max-width: 85px;
+  }
+  .nav-login {
+    font-size: 12px;
+    gap: 8px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation: none !important;
+    transition: none !important;
+    scroll-behavior: auto !important;
+  }
+  .motion-control {
+    display: none;
+  }
+}

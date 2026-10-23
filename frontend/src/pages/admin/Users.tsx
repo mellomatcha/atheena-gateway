@@ -203,7 +203,7 @@ export function UsersPage() {
                   <td>
                     <span className="badge">{u.status}</span>
                   </td>
-                  <td className="num">{formatIDR(u.balance_idr)}</td>
+                  <td className="num money">{formatIDR(u.balance_idr)}</td>
                   <td>
                     <button className="button" onClick={() => setSelected(u.id)}>
                       Kelola

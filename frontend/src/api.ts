@@ -68,6 +68,8 @@ export interface Me {
   id: string
   email: string
   display_name: string
+  full_name: string
+  username: string
   role: 'member' | 'admin'
   tier: 'basic' | 'advanced'
   status: string

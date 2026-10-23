@@ -33,6 +33,7 @@ const StatusPage = lazy(() =>
 const LeaderboardPage = lazy(() =>
   import('./pages/Leaderboard').then((m) => ({ default: m.LeaderboardPage })),
 )
+const PricingPage = lazy(() => import('./pages/Pricing').then((m) => ({ default: m.PricingPage })))
 
 function Routed() {
   const { state } = useSession()
@@ -52,6 +53,7 @@ function Routed() {
           <Route path="topup" element={<TopUpPage />} />
           <Route path="profil" element={<ProfilePage />} />
           <Route path="leaderboard" element={<LeaderboardPage />} />
+          <Route path="paket" element={<PricingPage workspace />} />
           {isAdmin && <Route path="admin/saldo" element={<AdminBalancePage />} />}
           {isAdmin && (
             <>
@@ -74,9 +76,19 @@ function Routed() {
 export default function App() {
   return (
     <BrowserRouter>
-      <SessionProvider>
-        <Routed />
-      </SessionProvider>
+      <Suspense fallback={<div className="status-page">Memuat…</div>}>
+        <Routes>
+          <Route path="/pricing" element={<PricingPage />} />
+          <Route
+            path="*"
+            element={
+              <SessionProvider>
+                <Routed />
+              </SessionProvider>
+            }
+          />
+        </Routes>
+      </Suspense>
     </BrowserRouter>
   )
 }

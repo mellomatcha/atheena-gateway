@@ -13,7 +13,7 @@
     Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'self'; frame-ancestors 'none'; form-action 'self'; base-uri 'none'; object-src 'none'"
     Cache-Control no-store
   }
-  @gateway path /v1/* /app/api/*
+  @gateway path /v1/* /app/api/* /api/public/*
   handle @gateway {
     reverse_proxy api:8000 {
       flush_interval -1
@@ -31,6 +31,11 @@
   }
   @portal path /app /app/*
   handle @portal {
+    root * /srv
+    rewrite * /index.html
+    file_server
+  }
+  handle /pricing {
     root * /srv
     rewrite * /index.html
     file_server

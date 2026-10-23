@@ -13,8 +13,8 @@ router = APIRouter()
 
 class EntryOut(BaseModel):
     rank: int
-    # FR-8.3: display name only, never the email.
-    display_name: str
+    # Public username only: never full names or emails.
+    username: str
     value: float
     requests: int
     is_me: bool
@@ -46,7 +46,7 @@ async def get_leaderboard(
         entries=[
             EntryOut(
                 rank=e.rank,
-                display_name=e.display_name,
+                username=e.username,
                 value=e.value,
                 requests=e.requests,
                 is_me=e.user_id == user.id,

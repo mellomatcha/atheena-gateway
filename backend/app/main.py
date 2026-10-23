@@ -14,6 +14,7 @@ from app.logs import RequestContextMiddleware, configure_logging
 from app.portal.access import AccessVerifier
 from app.portal.deps import PortalError
 from app.portal.router import router as portal_router
+from app.public import router as public_router
 
 
 def create_app(settings: Settings | None = None) -> FastAPI:
@@ -58,6 +59,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.include_router(health_router)
     app.include_router(gateway_router)
     app.include_router(portal_router)
+    app.include_router(public_router)
 
     @app.exception_handler(PortalError)
     async def portal_error_handler(request: Request, exc: PortalError) -> JSONResponse:

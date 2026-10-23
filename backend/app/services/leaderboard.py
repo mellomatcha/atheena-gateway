@@ -26,7 +26,7 @@ LIMIT = 50
 class Entry:
     rank: int
     user_id: uuid.UUID
-    display_name: str
+    username: str
     value: float
     requests: int
 
@@ -63,7 +63,7 @@ async def leaderboard(
     value = metrics[metric].label("value")
 
     query = (
-        select(UsageDaily.user_id, User.display_name, value, requests.label("requests"))
+        select(UsageDaily.user_id, User.username, value, requests.label("requests"))
         .join(User, User.id == UsageDaily.user_id)
         .where(
             UsageDaily.day >= start,
@@ -71,8 +71,8 @@ async def leaderboard(
             User.status == "active",
             User.leaderboard_opt_out.is_(False),  # FR-8.4
         )
-        .group_by(UsageDaily.user_id, User.display_name)
-        .order_by(value.desc(), User.display_name)
+        .group_by(UsageDaily.user_id, User.username)
+        .order_by(value.desc(), User.username)
         .limit(LIMIT)
     )
     if metric == "efficiency":
@@ -82,7 +82,7 @@ async def leaderboard(
         Entry(
             rank=index + 1,
             user_id=row.user_id,
-            display_name=row.display_name,
+            username=row.username,
             value=float(row.value or 0),
             requests=int(row.requests),
         )
