@@ -1,5 +1,6 @@
 """Cloudflare Access authentication for the dashboard API (FR-1.1 to FR-1.3, §11)."""
 
+import asyncio
 import time
 from typing import Any
 
@@ -324,3 +325,100 @@ async def test_mutations_require_csrf_header(client_factory: ClientFactory) -> N
     assert same_origin.status_code == 200
     assert same_origin.json()["display_name"] == "Nama Baru"
     assert read_only.status_code == 200
+
+
+async def test_public_google_signup_creates_one_pending_member_with_no_api_access(
+    client_factory: ClientFactory,
+    certs: respx.Route,
+) -> None:
+    email = f"signup-{time.time_ns()}@example.test"
+    async with (
+        gateway_data() as data,
+        client_factory(**CF, public_signup_enabled=True) as client,
+    ):
+        headers = {"Cf-Access-Jwt-Assertion": token(email), **CSRF}
+        responses = await asyncio.gather(
+            *[client.get("/app/api/me", headers=headers) for _ in range(3)]
+        )
+        assert all(r.status_code == 200 for r in responses)
+        assert len({r.json()["id"] for r in responses}) == 1
+        member = responses[0].json()
+        assert member["status"] == "pending" and member["role"] == "member"
+        assert member["balance_idr"] == 0 and member["profile_completed"] is False
+        completed = await client.patch(
+            "/app/api/me",
+            headers=headers,
+            json={
+                "full_name": "Private New Member",
+                "username": "public_signup_user",
+                "status": "active",
+                "role": "admin",
+                "balance_idr": 999999,
+            },
+        )
+        assert completed.status_code == 200
+        assert completed.json()["profile_completed"] is True
+        assert completed.json()["status"] == "pending"
+        assert completed.json()["role"] == "member"
+        assert completed.json()["balance_idr"] == 0
+        for path in [
+            "/keys",
+            "/usage/summary",
+            "/usage/timeseries",
+            "/usage/requests",
+            "/admin/users",
+        ]:
+            assert (await client.get("/app/api" + path, headers=headers)).status_code == 403
+        assert (
+            await client.post("/app/api/keys", headers=headers, json={"name": "blocked"})
+        ).status_code == 403
+        assert (
+            await data.scalar(
+                "SELECT count(*) FROM audit_logs WHERE action='user.signup' AND target_id=:id",
+                id=member["id"],
+            )
+            == 1
+        )
+        # Only an administrator can make this transition in the real app.
+        await data.execute("UPDATE users SET status='active' WHERE id=:id", id=member["id"])
+        assert (
+            await client.post("/app/api/keys", headers=headers, json={"name": "activated"})
+        ).status_code == 201
+        await data.execute("UPDATE users SET status='suspended' WHERE id=:id", id=member["id"])
+        assert (await client.get("/app/api/me", headers=headers)).status_code == 403
+
+
+async def test_signup_still_requires_verified_identity_and_never_provisions_console_users(
+    client_factory: ClientFactory,
+    certs: respx.Route,
+) -> None:
+    async with client_factory(
+        **CF, cf_access_admin_aud="console-aud", public_signup_enabled=True
+    ) as client:
+        assert (
+            await client.get(
+                "/app/api/me", headers={"Cf-Access-Authenticated-User-Email": "forged@example.test"}
+            )
+        ).status_code == 401
+        assert (
+            await client.get(
+                "/app/api/me",
+                headers={"Cf-Access-Jwt-Assertion": token("forged@example.test", key=OTHER_KEY)},
+            )
+        ).status_code == 401
+        assert (
+            await client.get(
+                "https://console.atheena.online/app/api/me",
+                headers={
+                    "Cf-Access-Jwt-Assertion": token("console-new@example.test", aud="console-aud")
+                },
+            )
+        ).status_code == 403
+    async with gateway_data() as data:
+        assert (
+            await data.scalar(
+                "SELECT count(*) FROM users WHERE email IN "
+                "('forged@example.test','console-new@example.test')"
+            )
+            == 0
+        )

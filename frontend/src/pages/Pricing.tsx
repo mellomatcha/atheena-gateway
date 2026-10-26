@@ -44,6 +44,9 @@ async function publicGet<T>(path: string): Promise<T> {
   return response.json() as Promise<T>
 }
 
+const factorLabel = (value: string | undefined) =>
+  value === undefined ? '…' : Number(value).toLocaleString('id-ID', { maximumFractionDigits: 2 })
+
 export function PricingPage({ workspace = false }: { workspace?: boolean }) {
   const links = siteLinks()
   const catalog = useAsync('public-catalog', () => publicGet<Catalog>('catalog'))
@@ -145,7 +148,7 @@ export function PricingPage({ workspace = false }: { workspace?: boolean }) {
                 >
                   {catalog.data.models.map((m) => (
                     <option key={m.id} value={m.id}>
-                      {m.name} · {m.multiplier}×
+                      {m.name} · {factorLabel(m.multiplier)}×
                     </option>
                   ))}
                 </select>
@@ -153,7 +156,7 @@ export function PricingPage({ workspace = false }: { workspace?: boolean }) {
             </div>
             <div className="pricing-options">
               <span className="muted">
-                {model?.name} · multiplier {model?.multiplier}×
+                {model?.name} · multiplier ATHEENA {factorLabel(model?.multiplier)}×
               </span>
               <label className="check">
                 <input
@@ -233,9 +236,9 @@ export function PricingPage({ workspace = false }: { workspace?: boolean }) {
               })}
             </div>
             <p className="pricing-explainer">
-              Harga dasar menggunakan paket DeepSeek Flash. Harga model lain menyesuaikan rasio
-              multiplier terhadap Flash SG 0,03×, dengan harga minimum paket yang sama. Harga
-              dibulatkan ke atas per Rp100. Multiplier 0× tetap memakai harga dasar layanan ATHEENA.
+              DeepSeek V4.1 Flash, GLM 5.3, HY4, GPT 5.6 Luna, dan Gemini 3.5 Flash memakai harga
+              dasar 1×. Model lainnya mengikuti rasio multiplier provider terhadap GLM 5.3 (0,79×);
+              rasio di bawah 1× menjadi 0,45×. Harga dibulatkan ke atas per Rp100.
             </p>
           </section>
           <section className="calculator" id="calculator" aria-labelledby="calculator-title">
@@ -291,8 +294,8 @@ export function PricingPage({ workspace = false }: { workspace?: boolean }) {
                   </dd>
                 </div>
                 <div>
-                  <dt>Multiplier model</dt>
-                  <dd>{model?.multiplier}×</dd>
+                  <dt>Multiplier ATHEENA</dt>
+                  <dd>{factorLabel(model?.multiplier)}×</dd>
                 </div>
               </dl>
               <p className="muted">
@@ -362,15 +365,14 @@ export function PricingPage({ workspace = false }: { workspace?: boolean }) {
                           : 'Katalog provider · belum diverifikasi'}
                     </small>
                   </span>
-                  <span className="multiplier">{m.multiplier}×</span>
+                  <span className="multiplier">{factorLabel(m.multiplier)}×</span>
                 </button>
               ))}
             </div>
             {models.length === 0 && <p className="notice">Tidak ada model yang cocok.</p>}
             <p className="catalog-source">
-              Snapshot {new Date(catalog.data.captured_at).toLocaleDateString('id-ID')} · Multiplier
-              0× adalah metadata provider saat dicatat, bukan jaminan gratis selamanya. Ketersediaan
-              mengikuti provider.
+              Snapshot model {new Date(catalog.data.captured_at).toLocaleDateString('id-ID')} ·
+              Angka di atas adalah multiplier harga jual ATHEENA. Ketersediaan mengikuti provider.
             </p>
           </section>
         </>

@@ -1,10 +1,11 @@
 import { lazy, Suspense } from 'react'
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router'
 import { Shell } from './components/Shell'
-import { ErrorPage, InactivePage, SignedOutPage } from './pages/StatusPages'
+import { ErrorPage, InactivePage, PendingPage, SignedOutPage } from './pages/StatusPages'
 import { SessionProvider } from './session'
 import { useSession } from './session-context'
 import { getSurface, siteLinks } from './sites'
+import { OnboardingPage } from './pages/Onboarding'
 
 // Route-level code splitting: the chart library only loads with the overview page.
 const OverviewPage = lazy(() =>
@@ -51,6 +52,8 @@ function Routed() {
   if (consoleOnly && !isAdmin) {
     return <ErrorPage message="Console hanya tersedia untuk admin." />
   }
+  if (!state.me.profile_completed) return <OnboardingPage />
+  if (state.me.status === 'pending') return <PendingPage />
   return (
     <Suspense fallback={<div className="status-page muted">Memuat…</div>}>
       <Routes>

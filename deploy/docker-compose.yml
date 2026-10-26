@@ -13,6 +13,7 @@ x-app: &app
     CF_ACCESS_ADMIN_AUD: ${CF_ACCESS_ADMIN_AUD:?required}
     PORTAL_CONSOLE_HOST: console.atheena.online
     PUBLIC_API_BASE_URL: https://atheena.online/v1
+    PUBLIC_SIGNUP_ENABLED: 'true'
   depends_on:
     postgres: {condition: service_healthy}
     redis: {condition: service_healthy}

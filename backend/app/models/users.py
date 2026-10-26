@@ -39,6 +39,7 @@ class User(IdMixin, TimestampMixin, Base):
     username: Mapped[str] = mapped_column(
         Text, unique=True, server_default=text("'ath_' || substr(md5(random()::text), 1, 20)")
     )
+    profile_completed: Mapped[bool] = mapped_column(server_default=false())
     role: Mapped[str] = mapped_column(Text, server_default="member")
     tier: Mapped[str] = mapped_column(Text, server_default="basic")
     status: Mapped[str] = mapped_column(Text, server_default="pending")

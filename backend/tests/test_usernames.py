@@ -44,3 +44,37 @@ async def test_invalid_username(gateway_factory: ClientFactory, value: str) -> N
         async with as_user(gateway_factory, user) as client:
             response = await client.patch("/app/api/me", json={"username": value})
         assert response.status_code == 422
+
+
+async def test_profile_required_before_key_creation(gateway_factory: ClientFactory) -> None:
+    async with gateway_data() as data:
+        user = await data.user(profile_completed=False)
+        async with as_user(gateway_factory, user) as client:
+            denied = await client.post("/app/api/keys", json={"name": "laptop"})
+            assert denied.status_code == 403
+            assert denied.json()["error"]["code"] == "profile_incomplete"
+            partial = await client.patch("/app/api/me", json={"username": "new_member"})
+            assert partial.json()["profile_completed"] is False
+            invalid = await client.patch(
+                "/app/api/me", json={"full_name": "  ", "username": "new_member"}
+            )
+            assert invalid.status_code == 422
+            completed = await client.patch(
+                "/app/api/me", json={"full_name": "Private Member", "username": "new_member"}
+            )
+            assert completed.json()["profile_completed"] is True
+            created = await client.post("/app/api/keys", json={"name": "laptop"})
+            assert created.status_code == 201
+
+
+async def test_taken_username_does_not_complete_profile(gateway_factory: ClientFactory) -> None:
+    async with gateway_data() as data:
+        first, second = await data.user(), await data.user(profile_completed=False)
+        async with as_user(gateway_factory, first) as client:
+            await client.patch("/app/api/me", json={"username": "reserved_user"})
+        async with as_user(gateway_factory, second) as client:
+            conflict = await client.patch(
+                "/app/api/me", json={"full_name": "Private Member", "username": "reserved_user"}
+            )
+            assert conflict.status_code == 409
+            assert (await client.get("/app/api/me")).json()["profile_completed"] is False

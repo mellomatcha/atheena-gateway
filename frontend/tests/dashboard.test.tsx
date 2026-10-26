@@ -1,5 +1,5 @@
 import { afterEach, expect, test, vi } from 'vitest'
-import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { MemoryRouter } from 'react-router'
 import { api, type Me } from '../src/api'
 import { SessionContext } from '../src/session-context'
@@ -9,11 +9,13 @@ import { KeysPage } from '../src/pages/Keys'
 import { TopUpPage } from '../src/pages/TopUp'
 import App from '../src/App'
 import * as sites from '../src/sites'
+import { OverviewPage } from '../src/pages/Overview'
 
 afterEach(() => {
   cleanup()
   vi.unstubAllGlobals()
   vi.restoreAllMocks()
+  window.history.replaceState({}, '', '/')
 })
 const json = (body: unknown, status = 200) =>
   Promise.resolve(
@@ -25,6 +27,7 @@ const me: Me = {
   display_name: 'Dafin',
   full_name: 'Dafin',
   username: 'dafin',
+  profile_completed: true,
   role: 'member',
   tier: 'basic',
   status: 'active',
@@ -197,4 +200,130 @@ test('unconfigured payments do not display the sample QRIS or payment action', a
   await screen.findByText('Pembayaran belum diaktifkan. Hubungi admin untuk informasi saldo.')
   expect(screen.queryByRole('img', { name: /QRIS/ })).toBeNull()
   expect(screen.queryByRole('link', { name: 'Konfirmasi via WhatsApp' })).toBeNull()
+})
+
+test('first login requires a chosen username and full name before opening keys', async () => {
+  const incomplete = { ...me, username: `ath_${'a'.repeat(20)}`, profile_completed: false }
+  let profile = incomplete
+  vi.spyOn(sites, 'getSurface').mockReturnValue('dashboard')
+  window.history.replaceState({}, '', '/app/keys')
+  const fetcher = vi.fn((url: string, options?: RequestInit) => {
+    if (url.endsWith('/me') && options?.method === 'PATCH') {
+      profile = { ...profile, ...JSON.parse(options.body as string), profile_completed: true }
+      return json(profile)
+    }
+    return json(url.endsWith('/me') ? profile : [])
+  })
+  vi.stubGlobal('fetch', fetcher)
+  render(<App />)
+  await screen.findByRole('heading', { name: 'Mulai dengan identitasmu.' })
+  const username = screen.getByLabelText('Username publik') as HTMLInputElement
+  expect(username.value).toBe('')
+  expect(screen.queryByLabelText('Nama key')).toBeNull()
+  expect(screen.getByRole('button', { name: 'Buka workspace ↗' }).hasAttribute('disabled')).toBe(
+    true,
+  )
+  fireEvent.change(username, { target: { value: 'new_member' } })
+  fireEvent.change(screen.getByLabelText('Nama lengkap'), { target: { value: 'Private Person' } })
+  fireEvent.click(screen.getByRole('button', { name: 'Buka workspace ↗' }))
+  await screen.findByLabelText('Nama key')
+  const patch = fetcher.mock.calls.find(([, options]) => options?.method === 'PATCH')!
+  expect(JSON.parse(patch[1]!.body as string)).toEqual({
+    full_name: 'Private Person',
+    username: 'new_member',
+  })
+  window.history.replaceState({}, '', '/')
+})
+
+test('overview defaults to real token data and refreshes manually and while visible', async () => {
+  vi.stubGlobal(
+    'ResizeObserver',
+    class {
+      observe() {}
+      disconnect() {}
+    },
+  )
+  let tokenCount = 363
+  const fetcher = vi.fn((url: string) => {
+    const totals = {
+      requests: 1,
+      tokens: tokenCount,
+      input_tokens: tokenCount,
+      output_tokens: 0,
+      cache_write_tokens: 0,
+      cache_read_tokens: 0,
+      cost_idr: 0,
+    }
+    if (url.includes('/summary'))
+      return json({
+        today: totals,
+        last_7_days: totals,
+        last_30_days: totals,
+        top_model_30_days: 'deepseek-v4.1-flash',
+      })
+    if (url.includes('/timeseries'))
+      return json({
+        unit: 'token',
+        range_totals: totals,
+        points: [{ day: '2026-10-27', value: tokenCount, totals }],
+      })
+    if (url.includes('/facets')) return json({ models: [], projects: [] })
+    if (url.includes('/requests')) return json({ items: [], page: 1, page_size: 50, total: 0 })
+    return json([])
+  })
+  vi.stubGlobal('fetch', fetcher)
+  let intervalCallback: (() => void) | undefined
+  vi.spyOn(window, 'setInterval').mockImplementation(((fn: () => void, delay: number) => {
+    if (delay === 30_000) intervalCallback = fn
+    return 42
+  }) as typeof window.setInterval)
+  vi.spyOn(window, 'clearInterval').mockImplementation(() => {})
+  render(
+    <MemoryRouter>
+      <SessionContext value={{ state: { status: 'ready', me }, refresh: async () => {} }}>
+        <OverviewPage />
+      </SessionContext>
+    </MemoryRouter>,
+  )
+  await screen.findByText('363 token')
+  expect(
+    screen.getByRole('button', { name: 'Token', exact: true }).getAttribute('aria-pressed'),
+  ).toBe('true')
+  expect(
+    fetcher.mock.calls.some(([url]) => url.includes('/timeseries?') && url.includes('unit=token')),
+  ).toBe(true)
+  await waitFor(() =>
+    expect(
+      screen.getByRole('button', { name: 'Perbarui pemakaian' }).hasAttribute('disabled'),
+    ).toBe(false),
+  )
+  tokenCount = 726
+  fireEvent.click(screen.getByRole('button', { name: 'Perbarui pemakaian' }))
+  await screen.findByText('726 token')
+  vi.spyOn(document, 'visibilityState', 'get').mockReturnValue('hidden')
+  const before = fetcher.mock.calls.length
+  await act(async () => intervalCallback?.())
+  expect(fetcher.mock.calls.length).toBe(before)
+  vi.spyOn(document, 'visibilityState', 'get').mockReturnValue('visible')
+  tokenCount = 999
+  await act(async () => intervalCallback?.())
+  await screen.findByText('999 token')
+  fireEvent.click(screen.getByRole('button', { name: 'Rupiah', exact: true }))
+  await screen.findByText(/Token sudah tercatat/)
+})
+
+test('pending member sees activation status until an admin approves them', async () => {
+  let status = 'pending'
+  vi.spyOn(sites, 'getSurface').mockReturnValue('dashboard')
+  window.history.replaceState({}, '', '/app/keys')
+  vi.stubGlobal(
+    'fetch',
+    vi.fn((url: string) => json(url.endsWith('/me') ? { ...me, status } : [])),
+  )
+  render(<App />)
+  await screen.findByRole('heading', { name: 'Menunggu aktivasi admin.' })
+  expect(screen.queryByLabelText('Nama key')).toBeNull()
+  status = 'active'
+  fireEvent.click(screen.getByRole('button', { name: 'Periksa status aktivasi' }))
+  await screen.findByLabelText('Nama key')
 })

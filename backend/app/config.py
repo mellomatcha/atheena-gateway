@@ -37,6 +37,8 @@ class Settings(BaseSettings):
     cf_access_aud: str = ""
     cf_access_admin_aud: str = ""
     portal_console_host: str = "console.atheena.online"
+    # Google users may create pending profiles; API access still requires admin activation.
+    public_signup_enabled: bool = False
     # Top-up (FR-5.3): WhatsApp number for payment confirmations and the public path of the
     # static QRIS image. Both can change without rebuilding the frontend.
     topup_whatsapp_number: str = "6282312202002"

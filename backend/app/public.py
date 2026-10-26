@@ -46,9 +46,18 @@ PLANS: tuple[Plan, ...] = (
         "regular_idr": 59900,
     },
 )
-# Retail policy: use the paid SG variant as the nonzero relative reference. The
-# base package price is the floor, including for provider models marked zero-credit.
-REFERENCE_MULTIPLIER = Decimal("0.03")
+# Owner's retail policy, 2026-10-27. Provider metadata stays unchanged.
+REFERENCE_MULTIPLIER = Decimal("0.79")
+BASE_MODELS = frozenset(
+    {"deepseek-v4.1-flash", "glm-5.3", "hy4-preview", "gpt-5.6-luna", "gemini-3.5-flash"}
+)
+
+
+def retail_factor(model_id: str, provider_multiplier: str) -> Decimal:
+    if model_id in BASE_MODELS:
+        return Decimal(1)
+    relative = Decimal(provider_multiplier) / REFERENCE_MULTIPLIER
+    return Decimal("0.45") if relative < 1 else relative
 
 
 def rounded_price(value: Decimal) -> int:
@@ -61,7 +70,7 @@ def quote(model_id: str, plan_id: str, tokens: int | None, promo: bool = True) -
     if model is None or plan is None:
         raise HTTPException(404, "Model atau paket tidak ditemukan.")
     multiplier = Decimal(model["multiplier"])
-    factor = max(Decimal(1), multiplier / REFERENCE_MULTIPLIER)
+    factor = retail_factor(model_id, model["multiplier"])
     price = rounded_price(Decimal(plan["price_idr"] if promo else plan["regular_idr"]) * factor)
     target = tokens if tokens is not None else int(plan["tokens"])
     if target <= 0 or target > 1_000_000_000_000:
@@ -74,7 +83,8 @@ def quote(model_id: str, plan_id: str, tokens: int | None, promo: bool = True) -
         "included_tokens": plan["tokens"],
         "price_idr": price,
         "regular_idr": rounded_price(Decimal(plan["regular_idr"]) * factor),
-        "multiplier": str(multiplier),
+        "provider_multiplier": str(multiplier),
+        "multiplier": str(factor),
         "relative_factor": str(factor),
         "packs": packs,
         "total_idr": price * packs,
@@ -82,9 +92,7 @@ def quote(model_id: str, plan_id: str, tokens: int | None, promo: bool = True) -
         "effective_idr_per_million": str(Decimal(price) * 1_000_000 / int(plan["tokens"])),
         "status": "published",
         "checkout_enabled": False,
-        "method": "base-package"
-        if multiplier <= REFERENCE_MULTIPLIER
-        else "relative-multiplier-estimate",
+        "method": "atheena-retail-factor",
     }
 
 
@@ -92,10 +100,19 @@ def quote(model_id: str, plan_id: str, tokens: int | None, promo: bool = True) -
 async def get_catalog() -> dict[str, object]:
     return {
         **CATALOG,
+        "models": [
+            {
+                **model,
+                "provider_multiplier": model["multiplier"],
+                "multiplier": str(retail_factor(model["id"], model["multiplier"])),
+            }
+            for model in CATALOG["models"]
+        ],
         "plans": PLANS,
         "checkout_enabled": False,
-        "reference_model": "deepseek-v4.1-flash-sg",
+        "reference_model": "glm-5.3",
         "reference_multiplier": str(REFERENCE_MULTIPLIER),
+        "pricing_policy_date": "2026-10-27",
     }
 
 

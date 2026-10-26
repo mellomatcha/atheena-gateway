@@ -38,13 +38,15 @@ class GatewayData:
         tier: str = "basic",
         status: str = "active",
         daily_cap: int | None = None,
+        profile_completed: bool = True,
     ) -> uuid.UUID:
         user_id = new_id()
         async with self.engine.begin() as conn:
             await conn.execute(
                 text(
                     "INSERT INTO users (id, email, display_name, tier, status, balance_idr,"
-                    " daily_cap_idr) VALUES (:id, :email, 'Test', :tier, :status, :balance, :cap)"
+                    " daily_cap_idr, profile_completed) VALUES"
+                    " (:id, :email, 'Test', :tier, :status, :balance, :cap, :profile_completed)"
                 ),
                 {
                     "id": user_id,
@@ -53,6 +55,7 @@ class GatewayData:
                     "status": status,
                     "balance": balance,
                     "cap": daily_cap,
+                    "profile_completed": profile_completed,
                 },
             )
             if balance > 0:

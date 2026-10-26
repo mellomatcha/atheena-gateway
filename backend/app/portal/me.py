@@ -7,7 +7,7 @@ from fastapi import APIRouter
 from pydantic import BaseModel, Field, field_validator
 from sqlalchemy.exc import IntegrityError
 
-from app.portal.deps import CurrentUser, PortalError, SessionDep
+from app.portal.deps import PortalError, ProfileUser, SessionDep
 
 router = APIRouter()
 
@@ -18,6 +18,7 @@ class MeOut(BaseModel):
     display_name: str
     full_name: str
     username: str
+    profile_completed: bool
     role: str
     tier: str
     status: str
@@ -59,18 +60,20 @@ def me_out(user: object) -> MeOut:
 
 
 @router.get("/me")
-async def get_me(user: CurrentUser) -> MeOut:
+async def get_me(user: ProfileUser) -> MeOut:
     return me_out(user)
 
 
 @router.patch("/me")
-async def patch_me(body: MePatch, user: CurrentUser, session: SessionDep) -> MeOut:
+async def patch_me(body: MePatch, user: ProfileUser, session: SessionDep) -> MeOut:
     if body.display_name is not None:
         user.display_name = body.display_name.strip() or user.display_name
     if body.full_name is not None:
         user.display_name = body.full_name
     if body.username is not None:
         user.username = body.username
+    if body.username is not None and body.full_name is not None:
+        user.profile_completed = True
     if body.low_balance_threshold_idr is not None:
         user.low_balance_threshold_idr = body.low_balance_threshold_idr
     if body.leaderboard_opt_out is not None:

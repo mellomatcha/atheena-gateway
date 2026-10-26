@@ -101,6 +101,25 @@ a {
 
 /* ---------- Shell ---------- */
 
+.onboarding {
+  width: min(100% - 2rem, 46rem);
+  margin: 3rem auto;
+}
+
+.onboarding__card {
+  margin-top: 2rem;
+  padding: clamp(1.5rem, 5vw, 3rem);
+  border-top: 4px solid var(--electric);
+}
+
+.onboarding__card h1 {
+  margin: 1rem 0;
+}
+
+.onboarding__card .profile-form {
+  margin-top: 2rem;
+}
+
 .shell {
   display: grid;
   grid-template-columns: var(--rail-width) minmax(0, 1fr);

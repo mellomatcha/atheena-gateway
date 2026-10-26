@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import {
   api,
   type ApiKey,
@@ -36,7 +36,7 @@ function Stat({ label, totals }: { label: string; totals: Totals | undefined }) 
 export function OverviewPage() {
   const { me } = useMe()
   const [filters, setFilters] = useUsageFilters()
-  const [unit, setUnit] = useState<Unit>('idr')
+  const [unit, setUnit] = useState<Unit>('token')
   const [page, setPage] = useState(1)
   const query = filterQuery(filters)
   const queryKey = new URLSearchParams(query).toString()
@@ -50,6 +50,29 @@ export function OverviewPage() {
   const log = useAsync(`log?${queryKey}&page=${page}`, () =>
     api<RequestPage>('/usage/requests', { query: { ...query, page } }),
   )
+  const { reload: reloadSummary } = summary
+  const { reload: reloadFacets } = facets
+  const { reload: reloadKeys } = keys
+  const { reload: reloadSeries } = series
+  const { reload: reloadLog } = log
+  const refreshUsage = useCallback(() => {
+    reloadSummary()
+    reloadFacets()
+    reloadKeys()
+    reloadSeries()
+    reloadLog()
+  }, [reloadSummary, reloadFacets, reloadKeys, reloadSeries, reloadLog])
+  useEffect(() => {
+    const refreshVisible = () => {
+      if (document.visibilityState === 'visible') refreshUsage()
+    }
+    const timer = window.setInterval(refreshVisible, 30_000)
+    document.addEventListener('visibilitychange', refreshVisible)
+    return () => {
+      window.clearInterval(timer)
+      document.removeEventListener('visibilitychange', refreshVisible)
+    }
+  }, [refreshUsage])
 
   function changeFilters(next: Parameters<typeof setFilters>[0]) {
     setPage(1)
@@ -93,6 +116,19 @@ export function OverviewPage() {
       </dl>
       {summary.error && <p className="notice notice--error">{summary.error.message}</p>}
 
+      <div className="section__head">
+        <p className="muted">
+          Data diperbarui setiap 30 detik saat halaman terbuka. Waktu mengikuti WIB.
+        </p>
+        <button
+          className="button"
+          onClick={refreshUsage}
+          disabled={summary.loading || series.loading || log.loading}
+        >
+          Perbarui pemakaian
+        </button>
+      </div>
+
       <section className="section" aria-labelledby="grafik">
         <div className="section__head">
           <h2 id="grafik">Pemakaian per hari</h2>
@@ -112,6 +148,12 @@ export function OverviewPage() {
           keys={keys.data}
         />
         {series.error && <p className="notice notice--error">{series.error.message}</p>}
+        {unit === 'idr' && range && range.tokens > 0 && range.cost_idr === 0 && (
+          <p className="notice">
+            Token sudah tercatat. Biaya pada rentang ini Rp0; pilih Token untuk melihat volume
+            pemakaian.
+          </p>
+        )}
         <div className="panel chart-panel" aria-busy={series.loading}>
           {range && (
             <p className="chart-panel__total">

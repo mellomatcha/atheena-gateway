@@ -112,6 +112,10 @@ async def list_keys(user: CurrentUser, session: SessionDep) -> list[KeyOut]:
 
 @router.post("/keys", status_code=201)
 async def create_key(body: KeyCreate, user: CurrentUser, session: SessionDep) -> KeyCreated:
+    if not user.profile_completed:
+        raise PortalError(
+            403, "profile_incomplete", "Lengkapi nama lengkap dan username sebelum membuat API key."
+        )
     if body.model_allowlist is not None:
         # The allowlist can only narrow the tier (FR-2.7).
         permitted = {m.public_name for m in await allowed_models(session, user.tier)}

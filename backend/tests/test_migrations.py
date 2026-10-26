@@ -118,3 +118,45 @@ def test_username_upgrade_preserves_existing_profile_without_exposing_name() -> 
     finally:
         command.upgrade(config, "head")
     asyncio.run(after())
+
+
+def test_profile_setup_upgrade_preserves_chosen_username() -> None:
+    config = alembic_config()
+    chosen, generated = new_id(), new_id()
+
+    async def before() -> None:
+        engine = create_async_engine(TEST_DATABASE_URL)
+        async with engine.begin() as conn:
+            for user_id, username in [(chosen, "existing_member"), (generated, "ath_" + "a" * 20)]:
+                await conn.execute(
+                    text(
+                        "INSERT INTO users (id,email,display_name,username) "
+                        "VALUES (:id,:email,'Private',:username)"
+                    ),
+                    {
+                        "id": user_id,
+                        "email": f"migration-{user_id}@example.test",
+                        "username": username,
+                    },
+                )
+        await engine.dispose()
+
+    async def after() -> None:
+        engine = create_async_engine(TEST_DATABASE_URL)
+        async with engine.begin() as conn:
+            for user_id, expected in [(chosen, True), (generated, False)]:
+                assert (
+                    await conn.scalar(
+                        text("SELECT profile_completed FROM users WHERE id=:id"), {"id": user_id}
+                    )
+                    is expected
+                )
+                await conn.execute(text("DELETE FROM users WHERE id=:id"), {"id": user_id})
+        await engine.dispose()
+
+    command.downgrade(config, "0002_public_usernames")
+    try:
+        asyncio.run(before())
+    finally:
+        command.upgrade(config, "head")
+    asyncio.run(after())

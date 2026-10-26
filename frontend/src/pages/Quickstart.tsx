@@ -14,7 +14,7 @@ export function QuickstartPage() {
   const config = useAsync('config', () => api<Config>('/config'))
   const models = useAsync('models', () => api<CatalogModel[]>('/models'))
 
-  const base = config.data?.api_base_url ?? 'https://api.atheena.online/v1'
+  const base = config.data?.api_base_url ?? 'https://atheena.online/v1'
   const root = base.replace(/\/v1$/, '')
   const openaiModels = models.data?.filter((m) => m.api_format !== 'anthropic') ?? []
   const anthropicModels = models.data?.filter((m) => m.api_format !== 'openai') ?? []
@@ -64,6 +64,7 @@ export function QuickstartPage() {
         </p>
         <CodeBlock label="opencode.json" code={opencode} />
         <CodeBlock label="Terminal" code={`export ATHEENA_API_KEY="${key}"\nopencode`} />
+        <CodeBlock label="Windows PowerShell" code={`$env:ATHEENA_API_KEY="${key}"\nopencode`} />
       </section>
 
       <section className="section guide" aria-labelledby="claude-code">

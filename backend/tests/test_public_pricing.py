@@ -5,7 +5,7 @@ from decimal import Decimal
 
 import pytest
 
-from app.public import quote, rounded_price
+from app.public import quote, retail_factor, rounded_price
 from tests.conftest import ClientFactory
 
 
@@ -17,22 +17,44 @@ from tests.conftest import ClientFactory
         ("monthly", 49900, 500_000_000),
     ],
 )
-def test_owner_prices_and_zero_multiplier_floor(plan: str, price: int, tokens: int) -> None:
+def test_owner_base_prices(plan: str, price: int, tokens: int) -> None:
     result = quote("deepseek-v4.1-flash", plan, None)
     assert result["price_idr"] == price
     assert result["included_tokens"] == tokens
     assert result["packs"] == 1
     assert result["checkout_enabled"] is False
-    assert quote("deepseek-v4.1-flash-sg", plan, None)["price_idr"] == price
+    for model in ["glm-5.3", "hy4-preview", "gpt-5.6-luna", "gemini-3.5-flash"]:
+        assert quote(model, plan, None)["price_idr"] == price
+
+
+@pytest.mark.parametrize(
+    ("model", "provider", "expected"),
+    [
+        ("deepseek-v4.1-flash", "0.00", Decimal(1)),
+        ("glm-5.3", "0.79", Decimal(1)),
+        ("glm-5.2", "0.79", Decimal(1)),
+        ("glm-5.3-flash", "0.06", Decimal("0.45")),
+        ("deepseek-v4.1-flash-sg", "0.03", Decimal("0.45")),
+        ("hy3", "0.00", Decimal("0.45")),
+        ("kimi-k2.8-preview", "0.77", Decimal("0.45")),
+        ("kimi-k2.6", "0.52", Decimal("0.45")),
+        ("gpt-6-astra", "6.67", Decimal("6.67") / Decimal("0.79")),
+    ],
+)
+def test_retail_policy(model: str, provider: str, expected: Decimal) -> None:
+    assert retail_factor(model, provider) == expected
 
 
 def test_promo_rounding_and_full_package_boundaries() -> None:
     assert quote("deepseek-v4.1-flash", "monthly", None, False)["price_idr"] == 59900
     result = quote("glm-5.3-flash", "daily", 100_000_001)
-    assert result["price_idr"] == 19800  # 0.06 / 0.03, not arbitrary currency conversion
+    assert result["price_idr"] == 4500  # 9900 * 0.45, rounded up to Rp100
     assert result["packs"] == 2
-    assert result["total_idr"] == 39600
-    assert quote("gpt-5.6-luna", "daily", 1)["price_idr"] == 46200
+    assert result["total_idr"] == 9000
+    assert quote("gpt-5.6-luna", "daily", 1)["price_idr"] == 9900
+    assert quote("gpt-6-astra", "daily", 1)["price_idr"] == 83600
+    assert quote("glm-5.3-flash", "monthly", None)["price_idr"] == 22500
+    assert quote("glm-5.3-flash", "monthly", None, False)["price_idr"] == 27000
     assert rounded_price(Decimal("9900.00000001")) == 10000
     assert rounded_price(Decimal("9900")) == 9900
 
@@ -51,6 +73,8 @@ async def test_public_catalog_has_no_account_data_or_auth_requirement(
         body = response.json()
         assert len(body["models"]) == 17
         assert body["version"] == "2.173.0"
+        flash = next(m for m in body["models"] if m["id"] == "deepseek-v4.1-flash")
+        assert flash["multiplier"] == "1" and flash["provider_multiplier"] == "0.00"
         for forbidden in (
             "email",
             "api_key",

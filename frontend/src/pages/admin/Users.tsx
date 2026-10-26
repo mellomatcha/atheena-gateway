@@ -45,7 +45,7 @@ function UserEditor({ user, onSaved }: { user: UserDetail | null; onSaved: () =>
       setSuccess(
         user
           ? 'Pengguna diperbarui.'
-          : 'Pengguna ditambahkan. Izinkan email yang sama di Cloudflare Access untuk login produksi.',
+          : 'Pengguna ditambahkan. Minta pengguna masuk lewat Google dan melengkapi profil.',
       )
       if (!user) form.reset()
       onSaved()

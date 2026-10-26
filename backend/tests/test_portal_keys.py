@@ -207,3 +207,30 @@ async def test_suspended_user_cannot_use_dashboard(gateway_factory: ClientFactor
             response = await client.get("/app/api/keys")
     assert response.status_code == 403
     assert response.json()["error"]["code"] == "account_inactive"
+
+
+async def test_personal_key_usage_reaches_only_its_owners_dashboard(
+    gateway_factory: ClientFactory,
+) -> None:
+    async with gateway_data() as data:
+        owner, other = await data.user(), await data.user()
+        model = await data.model("ok?prompt=321&completion=42")
+        async with dashboard(gateway_factory, owner) as client:
+            created = (await client.post("/app/api/keys", json={"name": "my-opencode"})).json()
+            response = await client.post(
+                "/v1/chat/completions", json=openai_body(model), headers=auth(created["key"])
+            )
+            assert response.status_code == 200
+            summary = (await client.get("/app/api/usage/summary")).json()
+            series = (await client.get("/app/api/usage/timeseries?unit=token")).json()
+            logs = (await client.get("/app/api/usage/requests")).json()
+            assert summary["today"]["tokens"] == 363
+            assert sum(point["value"] for point in series["points"]) == 363
+            assert series["range_totals"]["requests"] == 1
+            assert logs["items"][0]["key_id"] == created["id"]
+        async with dashboard(gateway_factory, other) as client:
+            summary = (await client.get("/app/api/usage/summary")).json()
+            assert summary["today"]["tokens"] == 0
+            logs = await client.get(f"/app/api/usage/requests?key={created['id']}")
+            assert logs.json()["items"] == []
+            assert (await client.get("/app/api/admin/users")).status_code == 403

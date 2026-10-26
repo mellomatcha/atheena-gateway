@@ -8,11 +8,14 @@ from urllib.parse import urlsplit
 from fastapi import Depends, Request
 from fastapi.responses import JSONResponse
 from sqlalchemy import select
+from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import Settings
+from app.ids import new_id
 from app.models import User
 from app.portal.access import AccessDeniedError, AccessVerifier
+from app.services.audit import record_audit
 
 logger = logging.getLogger(__name__)
 
@@ -94,6 +97,47 @@ async def current_user(
 
 
 CurrentUser = Annotated[User, Depends(current_user)]
+
+
+async def profile_user(
+    request: Request, session: SessionDep, email: Annotated[str, Depends(authenticated_email)]
+) -> User:
+    """Only /me can provision or edit a pending account after verified Google/Access login."""
+    settings: Settings = request.app.state.settings
+    if not settings.public_signup_enabled or request.url.hostname == settings.portal_console_host:
+        return await current_user(request, session, email)
+    user = await session.scalar(select(User).where(User.email == email))
+    if user is None:
+        created_id = await session.scalar(
+            insert(User)
+            .values(
+                id=new_id(),
+                email=email,
+                display_name="",
+                status="pending",
+                role="member",
+                tier="basic",
+            )
+            .on_conflict_do_nothing(index_elements=[User.email])
+            .returning(User.id)
+        )
+        if created_id is not None:
+            await record_audit(
+                session,
+                actor_user_id=created_id,
+                action="user.signup",
+                target_type="user",
+                target_id=str(created_id),
+                after={"status": "pending", "role": "member", "tier": "basic"},
+            )
+        await session.commit()
+        user = await session.scalar(select(User).where(User.email == email))
+    if user is None or user.status not in {"active", "pending"}:
+        raise account_inactive()
+    return user
+
+
+ProfileUser = Annotated[User, Depends(profile_user)]
 
 
 async def require_admin(user: CurrentUser) -> User:

@@ -70,6 +70,7 @@ export interface Me {
   display_name: string
   full_name: string
   username: string
+  profile_completed: boolean
   role: 'member' | 'admin'
   tier: 'basic' | 'advanced'
   status: string

@@ -46,8 +46,11 @@ async function loadCatalog() {
                 : 'Katalog provider · belum diverifikasi',
           ),
         )
-        const multiplier = element('span', `${model.multiplier}×`, 'market-multiplier')
-        multiplier.setAttribute('aria-label', `Multiplier ${model.multiplier}`)
+        const factor = Number(model.multiplier).toLocaleString('id-ID', {
+          maximumFractionDigits: 2,
+        })
+        const multiplier = element('span', `${factor}×`, 'market-multiplier')
+        multiplier.setAttribute('aria-label', `Multiplier ATHEENA ${factor}`)
         card.append(icon, info, multiplier)
         grid.append(card)
       }
@@ -61,7 +64,7 @@ async function loadCatalog() {
     }
     const date = new Date(catalog.captured_at).toLocaleDateString('id-ID')
     document.querySelector('[data-catalog-source]').textContent =
-      `CB CLI ${catalog.version} · Snapshot ${date}. Multiplier mengikuti metadata provider; ketersediaan dapat berubah. Angka 0× bukan harga paket ATHEENA.`
+      `CB CLI ${catalog.version} · Snapshot ${date}. Multiplier harga jual ATHEENA; ketersediaan model mengikuti provider.`
     render('Semua')
   } catch {
     status.textContent = 'Katalog belum dapat dimuat. '

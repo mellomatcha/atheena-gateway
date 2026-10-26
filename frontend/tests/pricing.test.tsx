@@ -15,7 +15,7 @@ const models = [
     id: 'deepseek-v4.1-flash',
     name: 'DeepSeek V4.1 Flash',
     provider: 'DeepSeek',
-    multiplier: '0.00',
+    multiplier: '1',
     context_window: 1000000,
     inference_verified: true,
   },
@@ -23,7 +23,7 @@ const models = [
     id: 'glm-5.3-flash',
     name: 'GLM 5.3 Flash',
     provider: 'Zhipu',
-    multiplier: '0.06',
+    multiplier: '0.45',
     context_window: 1000000,
     inference_verified: true,
   },
@@ -51,17 +51,20 @@ function mockCatalog() {
   const fetcher = vi.fn((path: string) => {
     const url = new URL(path, 'https://test.example')
     const plan = plans.find((p) => p.id === url.searchParams.get('plan'))!
-    const factor = url.searchParams.get('model') === 'glm-5.3-flash' ? 2 : 1
+    const factor = url.searchParams.get('model') === 'glm-5.3-flash' ? 0.45 : 1
     const price =
       plan &&
-      (url.searchParams.get('promo') === 'false' ? plan.regular_idr : plan.price_idr) * factor
+      Math.ceil(
+        ((url.searchParams.get('promo') === 'false' ? plan.regular_idr : plan.price_idr) * factor) /
+          100,
+      ) * 100
     const body = path.endsWith('/catalog')
       ? { models, plans, version: '2.173.0', captured_at: '2026-10-23T00:00:00Z' }
       : {
           model: url.searchParams.get('model'),
           plan: plan.id,
           price_idr: price,
-          regular_idr: plan.regular_idr * factor,
+          regular_idr: Math.ceil((plan.regular_idr * factor) / 100) * 100,
           included_tokens: plan.tokens,
           effective_idr_per_million: String(price / (plan.tokens / 1000000)),
         }
@@ -99,9 +102,9 @@ test('homepage model link selects the model and promo toggle changes the retail 
     </MemoryRouter>,
   )
   await screen.findByRole('heading', { name: 'Bulanan' })
-  await waitFor(() => expect(screen.getAllByText(/99\.800/).length).toBeGreaterThan(0))
+  await waitFor(() => expect(screen.getAllByText(/22\.500/).length).toBeGreaterThan(0))
   fireEvent.click(screen.getByRole('checkbox', { name: 'Tampilkan promo bulanan' }))
-  await waitFor(() => expect(screen.getAllByText(/119\.800/).length).toBeGreaterThan(0))
+  await waitFor(() => expect(screen.getAllByText(/27\.000/).length).toBeGreaterThan(0))
   fireEvent.change(screen.getByRole('textbox', { name: 'Cari model' }), {
     target: { value: 'nonexistent' },
   })

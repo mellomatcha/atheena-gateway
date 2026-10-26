@@ -83,7 +83,7 @@ export function UsageChart({ points, unit }: { points: DayPoint[]; unit: Unit })
             />
             <Bar
               dataKey="value"
-              fill="var(--steel)"
+              fill="var(--electric)"
               activeBar={{ fill: 'var(--ice)' }}
               radius={[2, 2, 0, 0]}
               maxBarSize={28}
