@@ -547,3 +547,25 @@ dash.cloudflare.com due its saved permission gate despite the owner's reported A
 allow setting. Do not bypass that gate or claim generic API clients are fixed. Fresh
 member Google login remains pending the owner's incognito check. Checkout/entitlements
 are not implemented by this pricing release.
+
+
+## 27 October 2026 — Real member key and model authorization QA
+
+Verified the owner-supplied dashboard key belongs to active/basic member lerayee.
+Google records the email without the dot; the prior dotted-email lookup was not proof
+that the member had never signed in. Windows OpenCode with that exact key returned a
+response and exited 0 in 24.7s. The exact requested marker was not reproduced. Manual
+Sol selection in OpenCode was rejected with model_not_allowed, exit1, no response.
+
+Three allowed models responded: DeepSeek Flash, DeepSeek SG and GLM 5.3 Flash. Fourteen
+other catalog models plus one nonexistent model were denied. All probes and OpenCode
+requests were matched to the supplied key: 5 successful/17 denied requests; 4,147
+input/output tokens. Denials have zero usage/cost. No access, balances or key state
+was changed, and CT100 was not accessed. See tasks/TASK-011.md for exact evidence and
+limits. Existing app tests were not rerun for this documentation-only QA task.
+
+Model availability remains separate from retail pricing: the key's null allowlist
+permits every active model within its tier, not every model in the public catalog.
+Package entitlements/expiry/bonus accounting are not implemented. SG remains callable
+through its existing API route despite public retail hiding. Fresh-member API use is
+now verified; the agent has not visually witnessed that member's onboarding screen.
