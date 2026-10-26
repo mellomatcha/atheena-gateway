@@ -16,7 +16,7 @@ Google OAuth is still in Testing. For only `openid`, `email` and `profile`, Goog
 
 Payments, checkout and package entitlements are disabled. Pricing is a retail calculator, not an active subscription system. Metered model prices currently remain Rp 0 while usage is recorded. The owner has a clearly labelled Rp 10,000 internal testing adjustment in the append-only ledger; it is not payment revenue. Set deliberate prices/entitlements before selling service.
 
-Three inference-verified CodeBuddy models are initially active: DeepSeek V4.1 Flash, its SG variant, and GLM 5.3 Flash. Only the base DeepSeek model has been verified in both OpenAI and Anthropic formats. Other catalog entries are inactive until tested. Public catalog metadata distinguishes availability from successful inference.
+Three inference-verified CodeBuddy models are initially active: DeepSeek V4.1 Flash, its SG variant, and GLM 5.3 Flash. Only the base DeepSeek model has been verified in both OpenAI and Anthropic formats. Other catalog entries are inactive until tested. Public catalog metadata distinguishes availability from successful inference. The SG variant is hidden from the public catalog and retail quote endpoint by owner request; its original provider metadata and existing upstream route remain intact. The public catalog has 16 models and 46 offers. See `docs/retail-pricing.md` for fixed Sol/Astra packages and their separate weekly bonus pool.
 
 ## Routine commands
 

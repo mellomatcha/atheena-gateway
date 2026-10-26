@@ -489,7 +489,7 @@ Added deploy/backup.py and RUNBOOK.md. The deploy-user cron runs daily at 19:17 
 Remaining: default Python urllib is blocked by Cloudflare Browser Integrity Check (1010), while OpenCode and identified ATHEENA API clients work. MCP lacks Rulesets scope, and browser navigation to dash.cloudflare.com remains denied by its saved permission gate even after the owner's reported allowance. The owner reported applying the scoped API rule, but subsequent generic-client requests still fail; do not claim that fix is verified. Google OAuth remains in Testing with the owner as test user. General onboarding/publishing, checkout/entitlements and off-host encrypted backups are separate outstanding operations. Current prices remain zero in the metered gateway; retail package prices are simulations only.
 
 
-## 27 October 2026 � Username-only onboarding
+## 27 October 2026 — Username-only onboarding
 
 The owner removed manual full-name collection from signup. Pending members now only choose
 a unique username. After verifying the Access JWT, the backend retrieves the private Google
@@ -511,3 +511,39 @@ under /opt/atheena/releases/de362ff. Database, Redis, official9Router readiness 
 origin-routing checks passed. The deployed profile page shows the name read-only; browser
 proof is retained in the operator workspace. Fresh Google signup remains unverified live
 until the owner signs into the separate member account.
+
+
+## TASK-010 — Model packages and public SG hiding (27 October 2026)
+
+Implemented 46 published offers across 16 public models. DeepSeek highlight, GPT, China
+and other sections show every offer by default; a selected model is pinned above
+recommendations without duplicate cards. Sol/Astra have the owner-confirmed fixed
+daily/weekly prices, 50M primary quota and one shared 50M weekly Luna/DeepSeek bonus.
+No monthly GPT price was invented. SG is hidden publicly; raw provider metadata and
+existing upstream routing remain intact. Checkout and entitlements remain disabled.
+
+Validated with 233 backend tests in isolated CT102, ruff check/format, mypy (79 files),
+19 frontend tests, lint and production build. CT100 was not accessed.
+
+
+Deployment and live QA complete: release 6d768c1 runs on CT301. Database backup
+`atheena-20261026T185022Z.dump`, rollback image `atheena-api:before-6d768c1`, and prior
+source/web under `/opt/atheena/releases/6d768c1` were preserved. Schema remains
+0003_profile_setup. PostgreSQL, Redis, official 9Router readiness and ten origin-routing
+checks pass. The public catalog exposes 16 models and 46 offers; SG quotes return 404.
+Identified public-client checks verified all fixed prices, primary/bonus quotas, absent
+Sol/Astra monthly offers and consistent prices for all 1x models.
+
+Live browser checks confirmed all sections/cards by default, Sol pinned above recommendations
+without duplicates, and separate bonus accounting: 50M Sol weekly = Rp54,900/one package;
+51M = Rp109,800/two packages. Light/dark narrow layouts have no horizontal overflow.
+Homepage shows 16 models without SG and marks Sol/Astra as custom packages. Screenshots
+are retained in the operator workspace as pricing-sol-weekly-live.png and
+pricing-calculator-live.png. Theme restored to dark, filter restored to all models.
+
+The unrelated Cloudflare issue persists: default Python urllib receives HTTP403 before
+the portal; the identified application client passes. Browser approval review still blocks
+dash.cloudflare.com due its saved permission gate despite the owner's reported Always
+allow setting. Do not bypass that gate or claim generic API clients are fixed. Fresh
+member Google login remains pending the owner's incognito check. Checkout/entitlements
+are not implemented by this pricing release.
