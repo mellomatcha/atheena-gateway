@@ -13,65 +13,66 @@ interface CatalogModel {
   context_window: number | null
   gateway_listed: boolean
   inference_verified: boolean
-  supports_images: boolean
 }
 interface Plan {
   id: string
   name: string
   days: number
-  tokens: number
+}
+interface Offer {
+  model: string
+  plan: string
+  days: number
   price_idr: number
   regular_idr: number
+  included_tokens: number
+  bonus_tokens: number
+  bonus_models: string[]
+  bonus_pool: string | null
+  method: string
 }
 interface Catalog {
   models: CatalogModel[]
   plans: Plan[]
+  offers: Offer[]
   captured_at: string
   version: string
-}
-interface Quote {
-  model: string
-  plan: string
-  price_idr: number
-  regular_idr: number
-  included_tokens: number
-  effective_idr_per_million: string
-  method: string
 }
 async function publicGet<T>(path: string): Promise<T> {
   const response = await fetch(`/api/public/${path}`, { headers: { Accept: 'application/json' } })
   if (!response.ok) throw new Error('Data harga belum dapat dimuat. Coba lagi sebentar.')
   return response.json() as Promise<T>
 }
-
 const factorLabel = (value: string | undefined) =>
   value === undefined ? '…' : Number(value).toLocaleString('id-ID', { maximumFractionDigits: 2 })
+const chinaProviders = ['Tencent', 'Z.ai', 'Moonshot', 'DeepSeek']
+const gptOrder = ['gpt-5.6-sol', 'gpt-6-astra', 'gpt-5.6-luna']
 
 export function PricingPage({ workspace = false }: { workspace?: boolean }) {
   const links = siteLinks()
   const catalog = useAsync('public-catalog', () => publicGet<Catalog>('catalog'))
   const [params] = useSearchParams()
-  const [selectedModel, setModelId] = useState(params.get('model') ?? 'deepseek-v4.1-flash')
-  const modelId =
-    catalog.data && !catalog.data.models.some((m) => m.id === selectedModel)
-      ? 'deepseek-v4.1-flash'
-      : selectedModel
+  const [selectedModel, setModelId] = useState(params.get('model') ?? '')
+  const [calculatorModel, setCalculatorModel] = useState(
+    params.get('model') ?? 'deepseek-v4.1-flash',
+  )
+  const filterId = catalog.data?.models.some((m) => m.id === selectedModel) ? selectedModel : ''
+  const modelId = catalog.data?.models.some((m) => m.id === calculatorModel)
+    ? calculatorModel
+    : 'deepseek-v4.1-flash'
   const [period, setPeriod] = useState('monthly')
   const [tokensM, setTokensM] = useState('100')
   const [promo, setPromo] = useState(true)
   const [provider, setProvider] = useState('Semua')
   const [query, setQuery] = useState('')
-  const quotes = useAsync(`quotes:${modelId}:${promo}`, () =>
-    Promise.all(
-      ['daily', 'weekly', 'monthly'].map((plan) =>
-        publicGet<Quote>(`quote?model=${encodeURIComponent(modelId)}&plan=${plan}&promo=${promo}`),
-      ),
-    ),
-  )
+  const offers = (catalog.data?.offers ?? []).map((offer) => ({
+    ...offer,
+    price_idr: promo ? offer.price_idr : offer.regular_idr,
+  }))
   const model = catalog.data?.models.find((m) => m.id === modelId)
-  const currentQuotes =
-    quotes.loading || quotes.error ? undefined : quotes.data?.filter((q) => q.model === modelId)
-  const choice = currentQuotes?.find((q) => q.plan === period)
+  const modelOffers = offers.filter((offer) => offer.model === modelId)
+  const activePeriod = modelOffers.some((offer) => offer.plan === period) ? period : 'weekly'
+  const choice = modelOffers.find((offer) => offer.plan === activePeriod)
   const target = Number(tokensM)
   const validTarget =
     tokensM.trim() !== '' && Number.isFinite(target) && target > 0 && target <= 1000000
@@ -82,7 +83,148 @@ export function PricingPage({ workspace = false }: { workspace?: boolean }) {
         (provider === 'Semua' || m.provider === provider) &&
         `${m.name} ${m.id}`.toLowerCase().includes(query.toLowerCase()),
     ) ?? []
-
+  const remaining = (catalog.data?.models ?? []).filter((m) => m.id !== filterId)
+  const sections = [
+    {
+      id: 'highlight',
+      label: 'HIGHLIGHT',
+      title: 'DeepSeek. Siap untuk setiap hari.',
+      description: 'Satu model, tiga ritme. Pilih kapasitas yang pas untuk pekerjaanmu.',
+      models: remaining.filter((m) => m.id === 'deepseek-v4.1-flash'),
+    },
+    {
+      id: 'gpt',
+      label: 'GPT',
+      title: 'GPT. Pilih tenaga berpikirmu.',
+      description: 'Sol dan Astra punya paket khusus. Pilihan GPT lainnya tersedia hingga bulanan.',
+      models: remaining
+        .filter((m) => m.provider === 'OpenAI')
+        .sort(
+          (a, b) =>
+            (gptOrder.includes(a.id) ? gptOrder.indexOf(a.id) : 99) -
+            (gptOrder.includes(b.id) ? gptOrder.indexOf(b.id) : 99),
+        ),
+    },
+    {
+      id: 'china',
+      label: 'MODEL CHINA',
+      title: 'Perspektif baru. Banyak kemungkinan.',
+      description: 'GLM, HY, dan Kimi. Temukan model yang cocok dengan caramu bekerja.',
+      models: remaining.filter(
+        (m) => chinaProviders.includes(m.provider) && m.id !== 'deepseek-v4.1-flash',
+      ),
+    },
+    {
+      id: 'others',
+      label: 'MODEL LAINNYA',
+      title: 'Gemini dan pilihan lainnya.',
+      description: 'Lengkapi perangkat kerjamu dengan pilihan model lainnya.',
+      models: remaining.filter(
+        (m) => m.provider !== 'OpenAI' && !chinaProviders.includes(m.provider),
+      ),
+    },
+  ]
+  function selectModel(id: string) {
+    setModelId(id)
+    if (id) setCalculatorModel(id)
+  }
+  function renderModel(m: CatalogModel) {
+    return (
+      <div className="model-offers" key={m.id} id={`model-${m.id}`}>
+        <div className="model-offers__head">
+          <div>
+            <span className="eyebrow">{m.provider}</span>
+            <h3>{m.name}</h3>
+          </div>
+          <span className="model-offers__rate">
+            {offers.some((o) => o.model === m.id && o.method === 'fixed-model-package')
+              ? 'Harga paket khusus'
+              : `${factorLabel(m.multiplier)}× · harga ATHEENA`}
+          </span>
+        </div>
+        <div
+          className={`plan-grid ${offers.filter((o) => o.model === m.id).length === 2 ? 'plan-grid--pair' : ''}`}
+        >
+          {offers
+            .filter((q) => q.model === m.id)
+            .map((q) => {
+              const p = catalog.data!.plans.find((plan) => plan.id === q.plan)!
+              const selected = modelId === m.id && activePeriod === p.id
+              return (
+                <article
+                  key={p.id}
+                  aria-label={`${m.name} ${p.name}`}
+                  className={`plan-card ${selected ? 'plan-card--selected' : ''} ${q.bonus_tokens ? 'plan-card--bonus' : ''}`}
+                >
+                  {q.bonus_tokens > 0 && (
+                    <div className="plan-bonus-banner">BONUS 50 JT · LUNA / DEEPSEEK</div>
+                  )}
+                  <div className="plan-card__top">
+                    <span className="mono">{q.days} HARI</span>
+                    {q.regular_idr > q.price_idr && <span className="plan-tag">Promo bulanan</span>}
+                  </div>
+                  <h4>{p.name}</h4>
+                  <p className="plan-model">{m.name}</p>
+                  <div className="plan-price">
+                    <strong>{formatIDR(q.price_idr)}</strong>
+                    <span>/ {q.days === 1 ? 'hari' : `${q.days} hari`}</span>
+                  </div>
+                  <p className="plan-promo">
+                    {q.regular_idr > q.price_idr ? (
+                      <>
+                        <s>{formatIDR(q.regular_idr)}</s>
+                        <span>Harga promo</span>
+                      </>
+                    ) : (
+                      'Sekali bayar, tanpa perpanjangan otomatis.'
+                    )}
+                  </p>
+                  <div className="plan-quota">
+                    <strong>
+                      {q.included_tokens / 1e6}
+                      <span> juta</span>
+                    </strong>
+                    <span>token {q.bonus_tokens ? 'utama' : 'per periode'}</span>
+                  </div>
+                  {q.bonus_tokens > 0 && (
+                    <div className="plan-bonus-detail">
+                      <strong>+50 juta token gratis</strong>
+                      <span>
+                        Satu kuota gabungan untuk GPT 5.6 Luna & DeepSeek V4.1 Flash. Berlaku 7
+                        hari.
+                      </span>
+                    </div>
+                  )}
+                  <ul>
+                    <li>Total input + output, termasuk token cache</li>
+                    <li>Berlaku {q.days} hari sejak aktivasi</li>
+                    <li>API key pribadi & riwayat pemakaian</li>
+                    <li>
+                      {m.inference_verified
+                        ? 'Respons model terverifikasi'
+                        : 'Ketersediaan model mengikuti provider'}
+                    </li>
+                  </ul>
+                  <button
+                    className={`button ${selected ? 'button--primary' : ''}`}
+                    aria-label={`${m.name}: Simulasikan ${p.name.toLowerCase()}`}
+                    aria-pressed={selected}
+                    onClick={() => {
+                      setCalculatorModel(m.id)
+                      setPeriod(p.id)
+                      document.getElementById('calculator')?.scrollIntoView?.({ block: 'start' })
+                    }}
+                  >
+                    {selected ? 'Paket dipilih ✓' : `Simulasikan ${p.name.toLowerCase()}`}
+                    <span aria-hidden="true">↗</span>
+                  </button>
+                </article>
+              )
+            })}
+        </div>
+      </div>
+    )
+  }
   return (
     <div className={workspace ? 'page pricing pricing--workspace' : 'pricing pricing--public'}>
       {!workspace && (
@@ -101,7 +243,7 @@ export function PricingPage({ workspace = false }: { workspace?: boolean }) {
         <div>
           <span className="eyebrow">ATHEENA / PILIH KAPASITASMU</span>
           <h1>
-            Ruang untuk
+            Ruang untuk{' '}
             <br />
             <em>ambisimu.</em>
           </h1>
@@ -140,15 +282,16 @@ export function PricingPage({ workspace = false }: { workspace?: boolean }) {
                 <h2 id="plans-title">Sesuai ritme kerjamu.</h2>
               </div>
               <label className="field model-picker">
-                <span className="field__label">Model untuk simulasi harga</span>
+                <span className="field__label">Tampilkan model di atas</span>
                 <select
                   className="input"
-                  value={modelId}
-                  onChange={(e) => setModelId(e.target.value)}
+                  value={filterId}
+                  onChange={(e) => selectModel(e.target.value)}
                 >
+                  <option value="">Semua model</option>
                   {catalog.data.models.map((m) => (
                     <option key={m.id} value={m.id}>
-                      {m.name} · {factorLabel(m.multiplier)}×
+                      {m.name}
                     </option>
                   ))}
                 </select>
@@ -156,7 +299,7 @@ export function PricingPage({ workspace = false }: { workspace?: boolean }) {
             </div>
             <div className="pricing-options">
               <span className="muted">
-                {model?.name} · multiplier ATHEENA {factorLabel(model?.multiplier)}×
+                Semua paket bisa dibandingkan. Pilih model untuk menaruhnya paling atas.
               </span>
               <label className="check">
                 <input
@@ -167,89 +310,86 @@ export function PricingPage({ workspace = false }: { workspace?: boolean }) {
                 Tampilkan promo bulanan
               </label>
             </div>
-            {quotes.error && (
-              <p role="alert" className="notice notice--error">
-                {quotes.error.message}
+            <aside className="weekly-promo">
+              <span className="eyebrow">LEBIH BANYAK RUANG BERKARYA</span>
+              <strong>Sol & Astra mingguan: bonus 50 juta token.</strong>
+              <p>
+                50 juta token model utama + 50 juta token gabungan GPT 5.6 Luna / DeepSeek V4.1
+                Flash, tanpa biaya tambahan.
               </p>
+              <a href="#model-gpt-5.6-sol">Lihat paket GPT ↓</a>
+            </aside>
+            {filterId && (
+              <section
+                className="offer-section offer-section--pinned"
+                aria-labelledby="selected-model-title"
+              >
+                <span className="eyebrow">PILIHANMU</span>
+                <h2 id="selected-model-title">
+                  Paket {catalog.data.models.find((m) => m.id === filterId)!.name}
+                </h2>
+                {renderModel(catalog.data.models.find((m) => m.id === filterId)!)}
+              </section>
             )}
-            <div className="plan-grid">
-              {catalog.data.plans.map((p, i) => {
-                const q = currentQuotes?.find((x) => x.plan === p.id)
-                return (
-                  <article
-                    key={p.id}
-                    className={`plan-card ${period === p.id ? 'plan-card--selected' : ''}`}
-                  >
-                    <div className="plan-card__top">
-                      <span className="mono">
-                        0{i + 1} / {p.days} HARI
-                      </span>
-                      {p.id === 'monthly' && <span className="plan-tag">Jangka panjang</span>}
-                    </div>
-                    <h3>{p.name}</h3>
-                    <p className="plan-model">{model?.name}</p>
-                    <div className="plan-price" aria-live="polite">
-                      {q && !quotes.loading ? (
-                        <>
-                          <strong>{formatIDR(q.price_idr)}</strong>
-                          <span>
-                            / {p.days === 1 ? 'hari' : p.days === 7 ? '7 hari' : '30 hari'}
-                          </span>
-                        </>
-                      ) : (
-                        <strong>…</strong>
-                      )}
-                    </div>
-                    <p className="plan-promo">
-                      {q && !quotes.loading && q.regular_idr > q.price_idr ? (
-                        <>
-                          <s>{formatIDR(q.regular_idr)}</s>
-                          <span>Harga promo</span>
-                        </>
-                      ) : (
-                        'Satu kali pembayaran, tanpa perpanjangan otomatis.'
-                      )}
-                    </p>
-                    <div className="plan-quota">
-                      <strong>
-                        {p.tokens / 1e6}
-                        <span> juta</span>
-                      </strong>
-                      <span>token per periode</span>
-                    </div>
-                    <ul>
-                      <li>Total input + output, termasuk token cache</li>
-                      <li>Berlaku {p.days} hari sejak aktivasi</li>
-                      <li>API key pribadi & riwayat pemakaian</li>
-                      <li>Untuk model yang dipilih</li>
-                    </ul>
-                    <button
-                      className={`button ${period === p.id ? 'button--primary' : ''}`}
-                      aria-pressed={period === p.id}
-                      onClick={() => setPeriod(p.id)}
-                    >
-                      {period === p.id ? 'Paket dipilih ✓' : `Simulasikan ${p.name.toLowerCase()}`}
-                      <span aria-hidden="true">↗</span>
-                    </button>
-                  </article>
-                )
-              })}
-            </div>
+            {filterId && <h2 className="recommendations-title">Mungkin kamu tertarik.</h2>}
+            {sections
+              .filter((s) => s.models.length > 0)
+              .map((s) => (
+                <section
+                  className={`offer-section offer-section--${s.id}`}
+                  key={s.id}
+                  aria-labelledby={`section-${s.id}`}
+                >
+                  <div className="offer-section__title">
+                    <span className="eyebrow">{s.label}</span>
+                    <h2 id={`section-${s.id}`}>{s.title}</h2>
+                    <p className="muted">{s.description}</p>
+                  </div>
+                  {s.models.map(renderModel)}
+                </section>
+              ))}
             <p className="pricing-explainer">
-              DeepSeek V4.1 Flash, GLM 5.3, HY4, GPT 5.6 Luna, dan Gemini 3.5 Flash memakai harga
-              dasar 1×. Model lainnya mengikuti rasio multiplier provider terhadap GLM 5.3 (0,79×);
-              rasio di bawah 1× menjadi 0,45×. Harga dibulatkan ke atas per Rp100.
+              Model dengan multiplier 1× memakai harga dan kuota dasar DeepSeek sampai paket
+              bulanan. Sol dan Astra memakai harga paket khusus di atas.
             </p>
           </section>
           <section className="calculator" id="calculator" aria-labelledby="calculator-title">
             <div className="calculator-copy">
               <span className="eyebrow">02 / KALKULATOR</span>
               <h2 id="calculator-title">
-                Rencanakan.
+                Rencanakan.{' '}
                 <br />
                 <em>Lalu berkarya.</em>
               </h2>
               <p>Bandingkan kebutuhan token dengan kapasitas paket pilihanmu.</p>
+              <label className="field">
+                <span className="field__label">Model kalkulator</span>
+                <select
+                  className="input"
+                  value={modelId}
+                  onChange={(e) => setCalculatorModel(e.target.value)}
+                >
+                  {catalog.data.models.map((m) => (
+                    <option key={m.id} value={m.id}>
+                      {m.name}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label className="field">
+                <span className="field__label">Periode paket</span>
+                <select
+                  className="input"
+                  value={activePeriod}
+                  onChange={(e) => setPeriod(e.target.value)}
+                >
+                  {modelOffers.map((q) => (
+                    <option key={q.plan} value={q.plan}>
+                      {catalog.data!.plans.find((p) => p.id === q.plan)!.name}
+                    </option>
+                  ))}
+                </select>
+              </label>
               <label className="field">
                 <span className="field__label">Perkiraan total token (juta)</span>
                 <input
@@ -271,36 +411,48 @@ export function PricingPage({ workspace = false }: { workspace?: boolean }) {
             <div className="calculator-result" aria-live="polite">
               <p className="eyebrow">ESTIMASI KEBUTUHAN PAKET</p>
               <p className="result-price money">
-                {choice && validTarget && !quotes.loading && !quotes.error
-                  ? formatIDR(choice.price_idr * packs)
-                  : '—'}
+                {choice && validTarget ? formatIDR(choice.price_idr * packs) : '—'}
               </p>
               <p>
                 {packs
-                  ? `${packs} paket ${catalog.data.plans.find((p) => p.id === period)?.name.toLowerCase()} untuk ${formatNumber(target)} juta token`
+                  ? `${packs} paket ${catalog.data.plans.find((p) => p.id === activePeriod)?.name.toLowerCase()} untuk ${formatNumber(target)} juta token ${model?.name}`
                   : 'Masukkan kebutuhan tokenmu.'}
               </p>
               <dl>
                 <div>
-                  <dt>Kapasitas per paket</dt>
+                  <dt>Token utama per paket</dt>
                   <dd>{choice ? `${choice.included_tokens / 1e6} juta token` : '—'}</dd>
                 </div>
                 <div>
-                  <dt>Harga efektif per 1 juta</dt>
+                  <dt>Harga efektif per 1 juta token utama</dt>
                   <dd className="money">
-                    {choice && !quotes.loading
-                      ? formatIDR(Number(choice.effective_idr_per_million))
-                      : '—'}
+                    {choice ? formatIDR(choice.price_idr / (choice.included_tokens / 1e6)) : '—'}
                   </dd>
                 </div>
                 <div>
-                  <dt>Multiplier ATHEENA</dt>
-                  <dd>{factorLabel(model?.multiplier)}×</dd>
+                  <dt>Dasar harga</dt>
+                  <dd>
+                    {choice?.method === 'fixed-model-package'
+                      ? 'Paket khusus'
+                      : `${factorLabel(model?.multiplier)}×`}
+                  </dd>
                 </div>
+                {choice && choice.bonus_tokens > 0 && (
+                  <div>
+                    <dt>Bonus gabungan per paket</dt>
+                    <dd>50 juta · Luna / DeepSeek</dd>
+                  </div>
+                )}
               </dl>
+              {choice && choice.bonus_tokens > 0 && (
+                <p className="calculator-bonus">
+                  Bonus terpisah dari kuota {model?.name}; tidak menambah token model utama.{' '}
+                  {packs > 0 &&
+                    `Total bonus: ${formatNumber((packs * choice.bonus_tokens) / 1e6)} juta token.`}
+                </p>
+              )}
               <p className="muted">
-                Perhitungan membulatkan ke paket penuh. Belum termasuk konversi antar-model; masa
-                aktif paket tidak otomatis bertambah.
+                Perhitungan membulatkan ke paket penuh. Masa aktif paket tidak otomatis bertambah.
               </p>
               <button className="button" disabled>
                 Pembelian segera tersedia
@@ -313,9 +465,7 @@ export function PricingPage({ workspace = false }: { workspace?: boolean }) {
                 <span className="eyebrow">03 / KATALOG MODEL</span>
                 <h2 id="catalog-title">Banyak perspektif. Satu gerbang.</h2>
               </div>
-              <p className="muted">
-                {catalog.data.models.length} model dari CB CLI {catalog.data.version}
-              </p>
+              <p className="muted">{catalog.data.models.length} model pilihan</p>
             </div>
             <div className="catalog-filters">
               <div role="group" aria-label="Filter provider">
@@ -342,9 +492,9 @@ export function PricingPage({ workspace = false }: { workspace?: boolean }) {
               {models.map((m) => (
                 <button
                   key={m.id}
-                  className={`model-card ${m.id === modelId ? 'model-card--selected' : ''}`}
-                  onClick={() => setModelId(m.id)}
-                  aria-pressed={m.id === modelId}
+                  className={`model-card ${m.id === filterId ? 'model-card--selected' : ''}`}
+                  onClick={() => selectModel(m.id)}
+                  aria-pressed={m.id === filterId}
                 >
                   <span className="model-monogram" aria-hidden="true">
                     {m.provider === 'DeepSeek' ? 'DS' : m.provider.slice(0, 2).toUpperCase()}
@@ -365,14 +515,18 @@ export function PricingPage({ workspace = false }: { workspace?: boolean }) {
                           : 'Katalog provider · belum diverifikasi'}
                     </small>
                   </span>
-                  <span className="multiplier">{factorLabel(m.multiplier)}×</span>
+                  <span className="multiplier">
+                    {offers.some((o) => o.model === m.id && o.method === 'fixed-model-package')
+                      ? 'Khusus'
+                      : `${factorLabel(m.multiplier)}×`}
+                  </span>
                 </button>
               ))}
             </div>
             {models.length === 0 && <p className="notice">Tidak ada model yang cocok.</p>}
             <p className="catalog-source">
               Snapshot model {new Date(catalog.data.captured_at).toLocaleDateString('id-ID')} ·
-              Angka di atas adalah multiplier harga jual ATHEENA. Ketersediaan mengikuti provider.
+              Ketersediaan mengikuti provider.
             </p>
           </section>
         </>

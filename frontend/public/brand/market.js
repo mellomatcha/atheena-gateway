@@ -49,8 +49,12 @@ async function loadCatalog() {
         const factor = Number(model.multiplier).toLocaleString('id-ID', {
           maximumFractionDigits: 2,
         })
-        const multiplier = element('span', `${factor}×`, 'market-multiplier')
-        multiplier.setAttribute('aria-label', `Multiplier ATHEENA ${factor}`)
+        const fixed = model.pricing_method === 'fixed-model-package'
+        const multiplier = element('span', fixed ? 'Khusus' : `${factor}×`, 'market-multiplier')
+        multiplier.setAttribute(
+          'aria-label',
+          fixed ? 'Harga paket khusus' : `Multiplier ATHEENA ${factor}`,
+        )
         card.append(icon, info, multiplier)
         grid.append(card)
       }

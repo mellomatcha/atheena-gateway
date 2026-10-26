@@ -23,8 +23,10 @@ def test_owner_base_prices(plan: str, price: int, tokens: int) -> None:
     assert result["included_tokens"] == tokens
     assert result["packs"] == 1
     assert result["checkout_enabled"] is False
-    for model in ["glm-5.3", "hy4-preview", "gpt-5.6-luna", "gemini-3.5-flash"]:
-        assert quote(model, plan, None)["price_idr"] == price
+    for model in ["glm-5.3", "glm-5.2", "hy4-preview", "gpt-5.6-luna", "gemini-3.5-flash"]:
+        same_tier = quote(model, plan, None)
+        assert same_tier["price_idr"] == price
+        assert same_tier["included_tokens"] == tokens
 
 
 @pytest.mark.parametrize(
@@ -34,7 +36,7 @@ def test_owner_base_prices(plan: str, price: int, tokens: int) -> None:
         ("glm-5.3", "0.79", Decimal(1)),
         ("glm-5.2", "0.79", Decimal(1)),
         ("glm-5.3-flash", "0.06", Decimal("0.45")),
-        ("deepseek-v4.1-flash-sg", "0.03", Decimal("0.45")),
+        ("deepseek-v4.1-flash-sg", "0.03", Decimal(1)),
         ("hy3", "0.00", Decimal("0.45")),
         ("kimi-k2.8-preview", "0.77", Decimal("0.45")),
         ("kimi-k2.6", "0.52", Decimal("0.45")),
@@ -52,7 +54,7 @@ def test_promo_rounding_and_full_package_boundaries() -> None:
     assert result["packs"] == 2
     assert result["total_idr"] == 9000
     assert quote("gpt-5.6-luna", "daily", 1)["price_idr"] == 9900
-    assert quote("gpt-6-astra", "daily", 1)["price_idr"] == 83600
+    assert quote("gpt-6-astra", "daily", 1)["price_idr"] == 39000
     assert quote("glm-5.3-flash", "monthly", None)["price_idr"] == 22500
     assert quote("glm-5.3-flash", "monthly", None, False)["price_idr"] == 27000
     assert rounded_price(Decimal("9900.00000001")) == 10000
@@ -71,7 +73,12 @@ async def test_public_catalog_has_no_account_data_or_auth_requirement(
         response = await client.get("/api/public/catalog")
         assert response.status_code == 200
         body = response.json()
-        assert len(body["models"]) == 17
+        assert len(body["models"]) == 16
+        assert len(body["offers"]) == 46
+        assert "deepseek-v4.1-flash-sg" not in response.text
+        assert len({(o["model"], o["plan"]) for o in body["offers"]}) == 46
+        for offer in body["offers"]:
+            assert offer == quote(offer["model"], offer["plan"], None)
         assert body["version"] == "2.173.0"
         flash = next(m for m in body["models"] if m["id"] == "deepseek-v4.1-flash")
         assert flash["multiplier"] == "1" and flash["provider_multiplier"] == "0.00"
@@ -101,6 +108,9 @@ async def test_public_catalog_has_no_account_data_or_auth_requirement(
     ("params", "status"),
     [
         ({"model": "unknown"}, 404),
+        ({"model": "deepseek-v4.1-flash-sg", "plan": "daily"}, 404),
+        ({"model": "gpt-5.6-sol", "plan": "monthly"}, 404),
+        ({"model": "gpt-6-astra", "plan": "monthly"}, 404),
         ({"model": "deepseek-v4.1-flash", "plan": "yearly"}, 422),
         ({"model": "deepseek-v4.1-flash", "tokens": "0"}, 422),
         ({"model": "deepseek-v4.1-flash", "tokens": "-1"}, 422),
@@ -114,3 +124,32 @@ async def test_invalid_quotes(
     async with client_factory() as client:
         response = await client.get("/api/public/quote", params=params)
     assert response.status_code == status
+
+
+@pytest.mark.parametrize(
+    ("model", "plan", "price", "bonus"),
+    [
+        ("gpt-5.6-sol", "daily", 30000, 0),
+        ("gpt-5.6-sol", "weekly", 54900, 50000000),
+        ("gpt-6-astra", "daily", 39000, 0),
+        ("gpt-6-astra", "weekly", 64900, 50000000),
+    ],
+)
+@pytest.mark.parametrize("promo", [True, False])
+def test_fixed_packages_keep_main_quota_separate_from_shared_bonus(
+    model: str, plan: str, price: int, bonus: int, promo: bool
+) -> None:
+    result = quote(model, plan, None, promo)
+    assert result["price_idr"] == result["regular_idr"] == price
+    assert result["included_tokens"] == 50_000_000
+    assert result["bonus_tokens"] == bonus
+    assert result["bonus_pool"] == ("shared" if bonus else None)
+    assert result["bonus_models"] == (["gpt-5.6-luna", "deepseek-v4.1-flash"] if bonus else [])
+    assert result["method"] == "fixed-model-package"
+    assert result["effective_idr_per_million"] == str(Decimal(price) / 50)
+    assert quote(model, plan, 50_000_000, promo)["packs"] == 1
+    overflow = quote(model, plan, 50_000_001, promo)
+    assert overflow["packs"] == 2
+    assert overflow["total_idr"] == price * 2
+    assert quote(model, plan, 100_000_000, promo)["packs"] == 2
+    assert result["checkout_enabled"] is False

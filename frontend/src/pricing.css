@@ -223,10 +223,123 @@
   letter-spacing: 0;
   white-space: nowrap;
 }
-.plan-card h3 {
+.plan-card h4 {
   font-size: 1.7rem;
   letter-spacing: -0.04em;
   margin: 1rem 0 0.4rem;
+}
+.weekly-promo {
+  display: grid;
+  gap: 0.65rem;
+  padding: 1.6rem 2rem;
+  border: 1px solid var(--money);
+  border-left: 5px solid var(--money);
+  background: var(--accent-wash);
+  margin: 2rem 0 3rem;
+}
+.weekly-promo strong {
+  font-size: clamp(1.3rem, 2.4vw, 1.9rem);
+  letter-spacing: -0.035em;
+}
+.weekly-promo p {
+  max-width: 55rem;
+  margin: 0;
+  font-size: 0.9rem;
+  line-height: 1.6;
+}
+.weekly-promo a {
+  color: var(--money);
+  font-size: 0.85rem;
+  font-weight: 700;
+}
+.offer-section {
+  padding-top: 2rem;
+  margin-bottom: 4.5rem;
+  border-top: 2px solid var(--chrome);
+}
+.offer-section__title {
+  margin-bottom: 2.5rem;
+}
+.offer-section__title .muted {
+  margin-top: 0.8rem;
+  max-width: 50rem;
+  line-height: 1.6;
+}
+.offer-section--pinned {
+  border-color: var(--money);
+}
+.recommendations-title {
+  margin-bottom: 2rem;
+}
+.model-offers {
+  margin-top: 2rem;
+  margin-bottom: 3.5rem;
+  scroll-margin-top: 2rem;
+}
+.model-offers__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 1rem;
+  margin-bottom: 1.7rem;
+}
+.model-offers__head h3 {
+  font-size: 1.45rem;
+  letter-spacing: -0.035em;
+  margin-top: 0.45rem;
+}
+.model-offers__head .eyebrow {
+  font-size: 0.65rem;
+}
+.model-offers__rate {
+  color: var(--steel);
+  font-size: 0.8rem;
+}
+.plan-grid--pair {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+.plan-card--bonus {
+  position: relative;
+  border-color: var(--money);
+}
+.plan-bonus-banner {
+  margin: -1.5rem -1.5rem 1.2rem;
+  padding: 0.6rem 1rem;
+  background: var(--electric);
+  color: var(--void);
+  font-size: 0.65rem;
+  font-weight: 800;
+  text-align: center;
+  letter-spacing: 0.05em;
+}
+:root:not([data-theme='dark']) .plan-bonus-banner {
+  color: #fffaf0;
+}
+.plan-bonus-detail {
+  display: grid;
+  gap: 0.6rem;
+  padding: 1rem 0;
+  border-bottom: 1px solid var(--gunmetal);
+}
+.plan-bonus-detail strong {
+  color: var(--money);
+  font-size: 1rem;
+}
+.plan-bonus-detail span {
+  color: var(--steel);
+  font-size: 0.75rem;
+  line-height: 1.6;
+}
+.calculator-bonus {
+  color: var(--money);
+  padding: 1rem;
+  background: var(--accent-wash);
+  font-size: 0.8rem;
+  line-height: 1.6;
+}
+.calculator-copy .field {
+  margin-top: 1rem;
 }
 .plan-model {
   color: var(--steel);
@@ -483,6 +596,9 @@
   .pricing--workspace .plan-card {
     padding: 1rem;
   }
+  .pricing--workspace .plan-bonus-banner {
+    margin: -1rem -1rem 1.2rem;
+  }
   .model-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
@@ -507,7 +623,8 @@
   .pricing-nav > a:not(.wordmark):not(.button) {
     display: none;
   }
-  .plan-grid {
+  .plan-grid,
+  .plan-grid--pair {
     grid-template-columns: 1fr;
     gap: 1.25rem;
   }
