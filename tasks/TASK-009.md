@@ -26,3 +26,10 @@ Profile settings display the imported name read-only; usernames remain editable.
 Live member login is still pending: the intended test email has no portal row yet.
 The owner reports Browse Always allow for dash.cloudflare.com, but the browser's saved
 permission gate still refuses navigation; no circumvention attempted.
+
+Deployment complete: release de362ff is live on CT301, schema unchanged at
+0003_profile_setup. Backup atheena-20261026T182955Z.dump and prior image/assets retained
+under /opt/atheena/releases/de362ff. Database, Redis, official9Router readiness and ten
+origin-routing checks passed. The deployed profile page shows the name read-only; browser
+proof is retained in the operator workspace. Fresh Google signup remains unverified live
+until the owner signs into the separate member account.

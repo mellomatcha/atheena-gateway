@@ -504,3 +504,10 @@ Validation: 222 backend tests passed in isolated CT102 (21.09s); ruff, formattin
 passed across 79 files. Sixteen frontend tests, lint and production build passed locally.
 No CT100 access and no paid provider inference occurred. Live release and fresh-member
 Google verification are recorded separately below after completion.
+
+Deployment complete: release de362ff is live on CT301, schema unchanged at
+0003_profile_setup. Backup atheena-20261026T182955Z.dump and prior image/assets retained
+under /opt/atheena/releases/de362ff. Database, Redis, official9Router readiness and ten
+origin-routing checks passed. The deployed profile page shows the name read-only; browser
+proof is retained in the operator workspace. Fresh Google signup remains unverified live
+until the owner signs into the separate member account.
