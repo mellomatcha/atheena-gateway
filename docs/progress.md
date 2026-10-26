@@ -487,3 +487,20 @@ Manual public QA: OpenAI non-stream, OpenAI SSE and Anthropic responses passed u
 Added deploy/backup.py and RUNBOOK.md. The deploy-user cron runs daily at 19:17 UTC/02:17 WIB, with 30-day local retention; cron is active and host timezone UTC. Actual custom-format dump restoration into an isolated database passed, including migration, 1 user, 17 models, 1 ledger entry, 7 requests and matching Rp 10,000balance/ledger totals. The temporary restore database was removed. Latest verified dump SHA256: 3b267ac7d55cff60d4159a358da607162b19555d0262b80ee3c7e2e6fdf94c4c. Backup script ruff check/format pass. Application code is unchanged from the previous199 backend / 11 frontend passing suite; this turn's additional checks exercised the deployed system and real restore.
 
 Remaining: default Python urllib is blocked by Cloudflare Browser Integrity Check (1010), while OpenCode and identified ATHEENA API clients work. MCP lacks Rulesets scope, and browser navigation to dash.cloudflare.com remains denied by its saved permission gate even after the owner's reported allowance. The owner reported applying the scoped API rule, but subsequent generic-client requests still fail; do not claim that fix is verified. Google OAuth remains in Testing with the owner as test user. General onboarding/publishing, checkout/entitlements and off-host encrypted backups are separate outstanding operations. Current prices remain zero in the metered gateway; retail package prices are simulations only.
+
+
+## 27 October 2026 — Username-only onboarding
+
+The owner removed manual full-name collection from signup. Pending members now only choose
+a unique username. After verifying the Access JWT, the backend retrieves the private Google
+name from the configured team's get-identity endpoint and checks that the response email
+matches the verified login. It never follows redirects with the session cookie, logs no
+identity payloads or tokens, and treats name retrieval as optional enrichment. Empty existing
+names are retried; established profiles are preserved. Pending activation, key permissions,
+admin boundaries and leaderboard privacy remain enforced. Profile settings show the name
+read-only, and a missing name does not block saving preferences or username setup.
+
+Validation: 222 backend tests passed in isolated CT102 (21.09s); ruff, formatting and mypy
+passed across 79 files. Sixteen frontend tests, lint and production build passed locally.
+No CT100 access and no paid provider inference occurred. Live release and fresh-member
+Google verification are recorded separately below after completion.

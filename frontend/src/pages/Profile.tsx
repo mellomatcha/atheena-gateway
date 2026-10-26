@@ -5,7 +5,6 @@ import { useMe } from '../session-context'
 
 export function ProfilePage() {
   const { me, refresh } = useMe()
-  const [name, setName] = useState(me.full_name)
   const [username, setUsername] = useState(me.username)
   const [threshold, setThreshold] = useState(me.low_balance_threshold_idr)
   const [optOut, setOptOut] = useState(me.leaderboard_opt_out)
@@ -20,7 +19,6 @@ export function ProfilePage() {
       await api<Me>('/me', {
         method: 'PATCH',
         body: {
-          full_name: name.trim(),
           username: username.trim(),
           low_balance_threshold_idr: threshold,
           leaderboard_opt_out: optOut,
@@ -45,15 +43,18 @@ export function ProfilePage() {
       </header>
       <form className="profile-form" onSubmit={(e) => void save(e)}>
         <label className="field">
-          <span className="field__label">Nama lengkap</span>
+          <span className="field__label" id="profile-name-label">
+            Nama lengkap
+          </span>
           <input
             className="input"
-            required
-            maxLength={60}
-            value={name}
-            onChange={(e) => setName(e.target.value)}
+            aria-labelledby="profile-name-label"
+            readOnly
+            value={me.full_name || 'Belum tersedia'}
           />
-          <small className="muted">Privat. Tidak ditampilkan di leaderboard.</small>
+          <small className="muted">
+            Diambil dari akun Google. Privat, tidak ditampilkan di leaderboard.
+          </small>
         </label>
         <label className="field">
           <span className="field__label">Username publik</span>
@@ -90,11 +91,7 @@ export function ProfilePage() {
           </p>
         )}
         <p>
-          <button
-            type="submit"
-            className="button button--primary"
-            disabled={saving || !name.trim()}
-          >
+          <button type="submit" className="button button--primary" disabled={saving}>
             {saving ? 'Menyimpan…' : 'Simpan pengaturan'}
           </button>
         </p>

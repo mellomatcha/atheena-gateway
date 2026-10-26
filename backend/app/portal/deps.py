@@ -80,6 +80,7 @@ async def authenticated_email(request: Request) -> str:
     if header_email is not None and header_email.strip().lower() != email:
         logger.info("access token rejected", extra={"reason": "email header mismatch"})
         raise not_authenticated()
+    request.state.verified_access_token = token
     return email
 
 
@@ -107,13 +108,18 @@ async def profile_user(
     if not settings.public_signup_enabled or request.url.hostname == settings.portal_console_host:
         return await current_user(request, session, email)
     user = await session.scalar(select(User).where(User.email == email))
+    google_name = ""
+    token = getattr(request.state, "verified_access_token", None)
+    if token and (user is None or (user.status in {"active", "pending"} and not user.display_name)):
+        verifier: AccessVerifier = request.app.state.access_verifier
+        google_name = await verifier.profile_name(token, email)
     if user is None:
         created_id = await session.scalar(
             insert(User)
             .values(
                 id=new_id(),
                 email=email,
-                display_name="",
+                display_name=google_name,
                 status="pending",
                 role="member",
                 tier="basic",
@@ -134,6 +140,9 @@ async def profile_user(
         user = await session.scalar(select(User).where(User.email == email))
     if user is None or user.status not in {"active", "pending"}:
         raise account_inactive()
+    if not user.display_name and google_name:
+        user.display_name = google_name
+        await session.commit()
     return user
 
 

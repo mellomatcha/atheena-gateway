@@ -10,6 +10,7 @@ import { TopUpPage } from '../src/pages/TopUp'
 import App from '../src/App'
 import * as sites from '../src/sites'
 import { OverviewPage } from '../src/pages/Overview'
+import { ProfilePage } from '../src/pages/Profile'
 
 afterEach(() => {
   cleanup()
@@ -202,37 +203,62 @@ test('unconfigured payments do not display the sample QRIS or payment action', a
   expect(screen.queryByRole('link', { name: 'Konfirmasi via WhatsApp' })).toBeNull()
 })
 
-test('first login requires a chosen username and full name before opening keys', async () => {
-  const incomplete = { ...me, username: `ath_${'a'.repeat(20)}`, profile_completed: false }
-  let profile = incomplete
-  vi.spyOn(sites, 'getSurface').mockReturnValue('dashboard')
-  window.history.replaceState({}, '', '/app/keys')
-  const fetcher = vi.fn((url: string, options?: RequestInit) => {
-    if (url.endsWith('/me') && options?.method === 'PATCH') {
-      profile = { ...profile, ...JSON.parse(options.body as string), profile_completed: true }
-      return json(profile)
+test.each(['Google Person', ''])(
+  'first login only requires username (Google name: %s)',
+  async (name) => {
+    const incomplete = {
+      ...me,
+      full_name: name,
+      username: `ath_${'a'.repeat(20)}`,
+      profile_completed: false,
     }
-    return json(url.endsWith('/me') ? profile : [])
-  })
+    let profile = incomplete
+    vi.spyOn(sites, 'getSurface').mockReturnValue('dashboard')
+    window.history.replaceState({}, '', '/app/keys')
+    const fetcher = vi.fn((url: string, options?: RequestInit) => {
+      if (url.endsWith('/me') && options?.method === 'PATCH') {
+        profile = { ...profile, ...JSON.parse(options.body as string), profile_completed: true }
+        return json(profile)
+      }
+      return json(url.endsWith('/me') ? profile : [])
+    })
+    vi.stubGlobal('fetch', fetcher)
+    render(<App />)
+    await screen.findByRole('heading', { name: 'Pilih username-mu.' })
+    const username = screen.getByLabelText('Username publik') as HTMLInputElement
+    expect(username.value).toBe('')
+    expect(screen.queryByLabelText('Nama key')).toBeNull()
+    expect(screen.getByRole('button', { name: 'Buka workspace ↗' }).hasAttribute('disabled')).toBe(
+      true,
+    )
+    fireEvent.change(username, { target: { value: 'new_member' } })
+    expect(screen.queryByLabelText('Nama lengkap')).toBeNull()
+    fireEvent.click(screen.getByRole('button', { name: 'Buka workspace ↗' }))
+    await screen.findByLabelText('Nama key')
+    const patch = fetcher.mock.calls.find(([, options]) => options?.method === 'PATCH')!
+    expect(JSON.parse(patch[1]!.body as string)).toEqual({
+      username: 'new_member',
+    })
+    window.history.replaceState({}, '', '/')
+  },
+)
+
+test('profile keeps Google name read-only and never requires it to save preferences', async () => {
+  const fetcher = vi.fn(() => json(me))
   vi.stubGlobal('fetch', fetcher)
-  render(<App />)
-  await screen.findByRole('heading', { name: 'Mulai dengan identitasmu.' })
-  const username = screen.getByLabelText('Username publik') as HTMLInputElement
-  expect(username.value).toBe('')
-  expect(screen.queryByLabelText('Nama key')).toBeNull()
-  expect(screen.getByRole('button', { name: 'Buka workspace ↗' }).hasAttribute('disabled')).toBe(
-    true,
+  render(
+    <SessionContext
+      value={{ state: { status: 'ready', me: { ...me, full_name: '' } }, refresh: async () => {} }}
+    >
+      <ProfilePage />
+    </SessionContext>,
   )
-  fireEvent.change(username, { target: { value: 'new_member' } })
-  fireEvent.change(screen.getByLabelText('Nama lengkap'), { target: { value: 'Private Person' } })
-  fireEvent.click(screen.getByRole('button', { name: 'Buka workspace ↗' }))
-  await screen.findByLabelText('Nama key')
-  const patch = fetcher.mock.calls.find(([, options]) => options?.method === 'PATCH')!
-  expect(JSON.parse(patch[1]!.body as string)).toEqual({
-    full_name: 'Private Person',
-    username: 'new_member',
-  })
-  window.history.replaceState({}, '', '/')
+  expect((screen.getByLabelText('Nama lengkap') as HTMLInputElement).readOnly).toBe(true)
+  fireEvent.click(screen.getByRole('button', { name: 'Simpan pengaturan' }))
+  await screen.findByText('Pengaturan disimpan.')
+  expect(
+    JSON.parse((fetcher.mock.calls[0] as unknown as [string, RequestInit])[1].body as string),
+  ).not.toHaveProperty('full_name')
 })
 
 test('overview defaults to real token data and refreshes manually and while visible', async () => {

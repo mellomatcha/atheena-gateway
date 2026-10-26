@@ -5,13 +5,12 @@ import { useMe } from '../session-context'
 
 export function OnboardingPage() {
   const { me, refresh } = useMe()
-  const [name, setName] = useState(me.full_name)
   const [username, setUsername] = useState(
     /^ath_[0-9a-f]{20}$/.test(me.username) ? '' : me.username,
   )
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
-  const valid = name.trim().length > 0 && /^[a-z][a-z0-9_]{2,23}$/.test(username)
+  const valid = /^[a-z][a-z0-9_]{2,23}$/.test(username)
 
   async function submit(event: FormEvent) {
     event.preventDefault()
@@ -21,7 +20,7 @@ export function OnboardingPage() {
     try {
       await api<Me>('/me', {
         method: 'PATCH',
-        body: { full_name: name.trim(), username },
+        body: { username },
       })
       await refresh()
     } catch (err) {
@@ -41,27 +40,12 @@ export function OnboardingPage() {
       </header>
       <section className="panel onboarding__card">
         <span className="eyebrow">SELAMAT DATANG DI ATHEENA</span>
-        <h1>Mulai dengan identitasmu.</h1>
+        <h1>Pilih username-mu.</h1>
         <p className="muted">
-          Login Google berhasil untuk {me.email}. Lengkapi profil untuk membuka workspace dan
-          membuat API key pribadi.
+          Login Google berhasil untuk {me.email}. Nama lengkap diambil otomatis dari akun Google dan
+          tetap privat. Pilih username untuk identitasmu di ATHEENA dan leaderboard.
         </p>
         <form className="profile-form" onSubmit={(event) => void submit(event)}>
-          <label className="field">
-            <span className="field__label" id="setup-name-label">
-              Nama lengkap
-            </span>
-            <input
-              className="input"
-              autoComplete="name"
-              aria-labelledby="setup-name-label"
-              required
-              maxLength={60}
-              value={name}
-              onChange={(event) => setName(event.target.value)}
-            />
-            <small className="muted">Privat. Tidak muncul di leaderboard.</small>
-          </label>
           <label className="field">
             <span className="field__label" id="setup-username-label">
               Username publik

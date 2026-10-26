@@ -53,15 +53,7 @@ async def test_profile_required_before_key_creation(gateway_factory: ClientFacto
             denied = await client.post("/app/api/keys", json={"name": "laptop"})
             assert denied.status_code == 403
             assert denied.json()["error"]["code"] == "profile_incomplete"
-            partial = await client.patch("/app/api/me", json={"username": "new_member"})
-            assert partial.json()["profile_completed"] is False
-            invalid = await client.patch(
-                "/app/api/me", json={"full_name": "  ", "username": "new_member"}
-            )
-            assert invalid.status_code == 422
-            completed = await client.patch(
-                "/app/api/me", json={"full_name": "Private Member", "username": "new_member"}
-            )
+            completed = await client.patch("/app/api/me", json={"username": "new_member"})
             assert completed.json()["profile_completed"] is True
             created = await client.post("/app/api/keys", json={"name": "laptop"})
             assert created.status_code == 201

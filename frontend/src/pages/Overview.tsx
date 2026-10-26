@@ -90,7 +90,7 @@ export function OverviewPage() {
           <h1>
             Selamat datang,
             <br />
-            {me.full_name}.
+            {me.full_name || me.username}.
           </h1>
           <p>Model pilihanmu. Kendali di tanganmu.</p>
           <Link className="button button--primary" to="/app/keys">

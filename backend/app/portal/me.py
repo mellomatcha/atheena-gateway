@@ -72,7 +72,7 @@ async def patch_me(body: MePatch, user: ProfileUser, session: SessionDep) -> MeO
         user.display_name = body.full_name
     if body.username is not None:
         user.username = body.username
-    if body.username is not None and body.full_name is not None:
+    if body.username is not None:
         user.profile_completed = True
     if body.low_balance_threshold_idr is not None:
         user.low_balance_threshold_idr = body.low_balance_threshold_idr

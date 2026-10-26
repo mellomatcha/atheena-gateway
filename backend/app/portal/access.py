@@ -88,3 +88,30 @@ class AccessVerifier:
         if not isinstance(email, str) or "@" not in email:
             raise AccessDeniedError("token has no email")
         return email.strip().lower()
+
+    async def profile_name(self, token: str, verified_email: str) -> str:
+        """Fetch optional IdP profile data only after this request's JWT was verified.
+
+        Application JWTs omit the Google name. Access exposes it through get-identity.
+        Never follow redirects with the session cookie or trust a different user's data.
+        Profile enrichment is optional and cannot confer any authorization.
+        """
+        try:
+            response = await self.client.get(
+                f"{self.issuer}/cdn-cgi/access/get-identity",
+                headers={"Cookie": f"CF_Authorization={token}"},
+                follow_redirects=False,
+            )
+            response.raise_for_status()
+            identity = response.json()
+        except (httpx.HTTPError, ValueError) as exc:
+            logger.warning("access profile lookup failed", extra={"exc_type": type(exc).__name__})
+            return ""
+        if not isinstance(identity, dict):
+            return ""
+        email = identity.get("email")
+        name = identity.get("name")
+        if not isinstance(email, str) or email.strip().lower() != verified_email:
+            logger.warning("access profile identity mismatch")
+            return ""
+        return name.strip()[:60] if isinstance(name, str) else ""

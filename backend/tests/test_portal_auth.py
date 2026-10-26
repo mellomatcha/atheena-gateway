@@ -18,6 +18,7 @@ from tests.gateway_support import gateway_data
 TEAM = "atheena-test.cloudflareaccess.com"
 AUD = "test-aud-tag-0123456789"
 CERTS_URL = f"https://{TEAM}/cdn-cgi/access/certs"
+IDENTITY_URL = f"https://{TEAM}/cdn-cgi/access/get-identity"
 CF = {"cf_access_team_domain": TEAM, "cf_access_aud": AUD}
 CSRF = {"X-Atheena-CSRF": "1"}
 
@@ -54,6 +55,7 @@ def email_of(user_id: object) -> str:
 def certs() -> Any:
     with respx.mock(assert_all_mocked=False, assert_all_called=False) as mock:
         route = mock.get(CERTS_URL).mock(return_value=httpx.Response(200, json=jwks()))
+        mock.get(IDENTITY_URL).mock(return_value=httpx.Response(200, json={}))
         yield route
 
 
@@ -75,6 +77,108 @@ async def test_valid_token_identifies_active_user(
     assert cookie.status_code == 200
     # Keys are cached in-process after the first fetch.
     assert certs.call_count == 1
+
+
+async def test_signup_imports_google_name_and_completes_with_username_only(
+    client_factory: ClientFactory,
+) -> None:
+    email = f"google-name-{time.time_ns()}@example.test"
+    access_token = token(email)
+    with respx.mock(assert_all_mocked=False, assert_all_called=False) as mock:
+        mock.get(CERTS_URL).mock(return_value=httpx.Response(200, json=jwks()))
+        identity = mock.get(IDENTITY_URL).mock(
+            return_value=httpx.Response(200, json={"email": email.upper(), "name": " Google Name "})
+        )
+        async with client_factory(**CF, public_signup_enabled=True) as client:
+            headers = {"Cf-Access-Jwt-Assertion": access_token, **CSRF}
+            profile = await client.get("/app/api/me", headers=headers)
+            assert profile.json()["full_name"] == "Google Name"
+            assert profile.json()["profile_completed"] is False
+            completed = await client.patch(
+                "/app/api/me", headers=headers, json={"username": "google_member"}
+            )
+            assert completed.json()["profile_completed"] is True
+            assert completed.json()["full_name"] == "Google Name"
+            assert completed.json()["status"] == "pending"
+            assert completed.json()["role"] == "member"
+            assert (
+                await client.post("/app/api/keys", headers=headers, json={"name": "blocked"})
+            ).status_code == 403
+        assert identity.call_count == 1
+        assert identity.calls[0].request.headers["cookie"] == f"CF_Authorization={access_token}"
+
+
+@pytest.mark.parametrize("failure", ["timeout", "unavailable", "redirect", "mismatch", "bad-json"])
+async def test_optional_google_name_failure_does_not_block_username_setup(
+    client_factory: ClientFactory, failure: str
+) -> None:
+    email = f"profile-{failure}-{time.time_ns()}@example.test"
+    responses = {
+        "unavailable": httpx.Response(503),
+        "redirect": httpx.Response(302, headers={"Location": "https://untrusted.example/"}),
+        "mismatch": httpx.Response(200, json={"email": "other@example.test", "name": "Other"}),
+        "bad-json": httpx.Response(200, text="not json"),
+    }
+    with respx.mock(assert_all_mocked=False, assert_all_called=False) as mock:
+        mock.get(CERTS_URL).mock(return_value=httpx.Response(200, json=jwks()))
+        identity = mock.get(IDENTITY_URL)
+        if failure == "timeout":
+            identity.mock(side_effect=httpx.ReadTimeout("timeout"))
+        else:
+            identity.mock(return_value=responses[failure])
+        redirect = mock.get("https://untrusted.example/").mock(return_value=httpx.Response(200))
+        async with client_factory(**CF, public_signup_enabled=True) as client:
+            headers = {"Cf-Access-Jwt-Assertion": token(email), **CSRF}
+            profile = await client.get("/app/api/me", headers=headers)
+            assert profile.status_code == 200
+            assert profile.json()["full_name"] == ""
+            completed = await client.patch(
+                "/app/api/me",
+                headers=headers,
+                json={"username": f"member_{failure.replace('-', '_')}"},
+            )
+            assert completed.status_code == 200
+            assert completed.json()["profile_completed"] is True
+            assert completed.json()["status"] == "pending"
+        assert not redirect.called
+
+
+async def test_google_name_backfills_empty_profiles_without_overwriting_existing_names(
+    client_factory: ClientFactory,
+) -> None:
+    async with gateway_data() as data:
+        user_id = await data.user(profile_completed=False)
+        email = email_of(user_id)
+        await data.execute("UPDATE users SET display_name='' WHERE id=:id", id=user_id)
+        with respx.mock(assert_all_mocked=False, assert_all_called=False) as mock:
+            mock.get(CERTS_URL).mock(return_value=httpx.Response(200, json=jwks()))
+            identity = mock.get(IDENTITY_URL).mock(
+                return_value=httpx.Response(200, json={"email": email, "name": "Restored Name"})
+            )
+            async with client_factory(**CF, public_signup_enabled=True) as client:
+                headers = {"Cf-Access-Jwt-Assertion": token(email)}
+                assert (await client.get("/app/api/me", headers=headers)).json()["full_name"] == (
+                    "Restored Name"
+                )
+                assert (await client.get("/app/api/me", headers=headers)).json()["full_name"] == (
+                    "Restored Name"
+                )
+            assert identity.call_count == 1
+
+
+async def test_invalid_identity_never_triggers_profile_lookup(
+    client_factory: ClientFactory,
+) -> None:
+    with respx.mock(assert_all_mocked=False, assert_all_called=False) as mock:
+        mock.get(CERTS_URL).mock(return_value=httpx.Response(200, json=jwks()))
+        identity = mock.get(IDENTITY_URL).mock(return_value=httpx.Response(200, json={}))
+        async with client_factory(**CF, public_signup_enabled=True) as client:
+            response = await client.get(
+                "/app/api/me",
+                headers={"Cf-Access-Jwt-Assertion": token("bad@example.test", key=OTHER_KEY)},
+            )
+        assert response.status_code == 401
+        assert not identity.called
 
 
 async def test_email_claim_is_case_insensitive(
