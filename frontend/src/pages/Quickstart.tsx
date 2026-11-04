@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { api, type CatalogModel } from '../api'
 import { CodeBlock } from '../components/CopyButton'
 import { useAsync } from '../useAsync'
@@ -10,7 +11,10 @@ interface Config {
 
 export function QuickstartPage() {
   // Keep plaintext keys only on the creation screen, never in browser history state.
-  const key = KEY_PLACEHOLDER
+  const [enteredKey, setEnteredKey] = useState('')
+  const key = /^sk-ath-[A-Za-z0-9]{40}$/.test(enteredKey.trim())
+    ? enteredKey.trim()
+    : KEY_PLACEHOLDER
   const config = useAsync('config', () => api<Config>('/config'))
   const models = useAsync('models', () => api<CatalogModel[]>('/models'))
 
@@ -31,7 +35,7 @@ export function QuickstartPage() {
         atheena: {
           npm: '@ai-sdk/openai-compatible',
           name: 'Atheena',
-          options: { baseURL: base, apiKey: '{env:ATHEENA_API_KEY}' },
+          options: { baseURL: base, apiKey: key },
           models: Object.fromEntries(openaiModels.map((m) => [m.name, { name: m.name }])),
         },
       },
@@ -50,10 +54,23 @@ export function QuickstartPage() {
         </p>
       </header>
 
-      <p className="notice">
-        Ganti <code className="num">{KEY_PLACEHOLDER}</code> dengan key Anda. Belum punya?{' '}
-        <a href="/app/keys">Buat key</a>.
+      <label className="field">
+        <span className="field__label">Paste API key kamu</span>
+        <input
+          type="password"
+          className="input"
+          value={enteredKey}
+          onChange={(e) => setEnteredKey(e.target.value)}
+          autoComplete="off"
+          spellCheck={false}
+          placeholder="sk-ath-…"
+        />
+      </label>
+      <p className="muted">
+        Key hanya dipakai di halaman ini untuk mengisi contoh konfigurasi. Tidak disimpan di
+        browser. Salin konfigurasi lalu jalankan OpenCode.
       </p>
+      {enteredKey && key === KEY_PLACEHOLDER && <p role="alert">Format API key belum lengkap.</p>}
 
       <section className="section guide" aria-labelledby="opencode">
         <h2 id="opencode">OpenCode</h2>
@@ -63,8 +80,7 @@ export function QuickstartPage() {
           <code>atheena/nama-model</code>.
         </p>
         <CodeBlock label="opencode.json" code={opencode} />
-        <CodeBlock label="Terminal" code={`export ATHEENA_API_KEY="${key}"\nopencode`} />
-        <CodeBlock label="Windows PowerShell" code={`$env:ATHEENA_API_KEY="${key}"\nopencode`} />
+        <CodeBlock label="Jalankan" code="opencode" />
       </section>
 
       <section className="section guide" aria-labelledby="claude-code">

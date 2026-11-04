@@ -287,3 +287,44 @@ async def test_admin_user_search_and_history(gateway_factory: ClientFactory) -> 
         # A literal "%" only matches names containing "%".
         assert all("%" in u["display_name"] or "%" in u["email"] for u in wildcard.json())
         assert history.json()["items"][0]["amount_idr"] == 3_000
+
+
+async def test_manual_topup_quotes_do_not_credit_balance(gateway_factory: ClientFactory) -> None:
+    from urllib.parse import parse_qs, urlparse
+
+    async with gateway_data() as data:
+        uid = await data.user(balance=7000)
+        async with as_user(gateway_factory, uid) as client:
+            responses = await asyncio.gather(
+                *(
+                    client.post(
+                        "/app/api/topup/quote", json={"amount_idr": 50000, "method": method}
+                    )
+                    for method in ["BCA", "DANA", "GoPay"]
+                )
+            )
+            for response in responses:
+                assert response.status_code == 200
+                body = response.json()
+                assert body["balance_after_idr"] == 57000
+                url = urlparse(body["whatsapp_url"])
+                assert url.netloc == "wa.me" and url.path == "/6282312202002"
+                message = parse_qs(url.query)["text"][0]
+                assert email_of(uid) in message and "Rp50.000" in message
+                assert body["method"] in message
+            for amount in [0, -1, 999, 100000001, 1.5, True, "50000"]:
+                bad = await client.post(
+                    "/app/api/topup/quote", json={"amount_idr": amount, "method": "BCA"}
+                )
+                assert bad.status_code == 422
+            bad = await client.post(
+                "/app/api/topup/quote", json={"amount_idr": 50000, "method": "invalid"}
+            )
+            assert bad.status_code == 422
+        assert await ledger_sum(data, uid) == 7000
+        assert await data.scalar("SELECT balance_idr FROM users WHERE id = :id", id=uid) == 7000
+    async with gateway_factory() as client:
+        denied = await client.post(
+            "/app/api/topup/quote", json={"amount_idr": 50000, "method": "BCA"}, headers=CSRF
+        )
+        assert denied.status_code == 401

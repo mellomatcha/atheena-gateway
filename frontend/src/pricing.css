@@ -685,3 +685,119 @@
     scroll-behavior: auto !important;
   }
 }
+
+/* Compact comparisons retain all price, quota and bonus information. */
+.pricing .plan-card {
+  padding: 1rem;
+}
+.pricing .plan-grid {
+  gap: 0.75rem;
+}
+.pricing .plan-card h4 {
+  font-size: 1.2rem;
+  margin: 0.5rem 0 0.25rem;
+}
+.pricing .plan-model,
+.pricing .plan-promo {
+  min-height: 0;
+  margin: 0.4rem 0;
+}
+.pricing .plan-price {
+  margin: 0.6rem 0;
+}
+.pricing .plan-price strong {
+  font-size: 1.8rem;
+}
+.pricing .plan-quota {
+  padding: 0.6rem 0;
+}
+.pricing .plan-quota strong {
+  font-size: 1.5rem;
+}
+.pricing .plan-card ul {
+  margin: 0.8rem 0;
+  gap: 0.4rem;
+}
+.pricing .plan-bonus-banner {
+  margin: -1rem -1rem 0.6rem;
+  padding: 0.45rem;
+}
+.pricing .plan-bonus-detail {
+  padding: 0.6rem 0;
+  gap: 0.3rem;
+}
+.pricing .model-offers {
+  margin: 1.2rem 0 1.8rem;
+}
+.pricing .model-offers__head {
+  margin-bottom: 0.8rem;
+}
+.pricing .offer-section {
+  margin-bottom: 2rem;
+  padding-top: 1.2rem;
+}
+.pricing .offer-section__title {
+  margin-bottom: 1.2rem;
+}
+.pricing .calculator-copy,
+.pricing .calculator-result {
+  padding: 1.25rem;
+}
+.pricing .calculator-copy h2 {
+  font-size: 2rem;
+}
+.pricing .calculator-copy .input {
+  font-size: 1rem;
+  padding: 0.65rem;
+}
+.pricing .weekly-promo {
+  padding: 1rem;
+  margin: 1rem 0 1.5rem;
+}
+.topup-manual {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.5rem;
+  border: 1px solid var(--gunmetal);
+  padding: 1.5rem;
+  background: var(--graphite);
+}
+.topup-manual .field {
+  margin: 1rem 0;
+}
+.topup-summary {
+  padding: 1rem;
+  background: var(--accent-wash);
+}
+.topup-summary p {
+  margin: 0.75rem 0;
+}
+.topup-summary strong {
+  display: block;
+}
+.topup-message {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  font: inherit;
+  font-size: 0.85rem;
+  padding: 1rem 0;
+}
+@media (max-width: 52rem) {
+  .pricing .plan-grid {
+    display: flex;
+    overflow-x: auto;
+    scroll-snap-type: x proximity;
+    padding-bottom: 0.6rem;
+  }
+  .pricing .plan-card {
+    flex: 0 0 min(78vw, 19rem);
+    scroll-snap-align: start;
+  }
+  .topup-manual {
+    grid-template-columns: 1fr;
+    padding: 1rem;
+  }
+  .pricing .plan-card ul {
+    grid-template-columns: 1fr;
+  }
+}

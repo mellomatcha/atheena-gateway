@@ -94,11 +94,11 @@ export function OverviewPage() {
           </h1>
           <p>Model pilihanmu. Kendali di tanganmu.</p>
           <Link className="button button--primary" to="/app/keys">
-            Kelola API key ↗
+            Kelola API key ↗︎
           </Link>
         </div>
         <div className="welcome-art" aria-hidden="true">
-          <span>ΑΘΗΝΑ</span>
+          <span>ATHEENA</span>
           <img src="/brand/athena.png" alt="" />
         </div>
       </header>

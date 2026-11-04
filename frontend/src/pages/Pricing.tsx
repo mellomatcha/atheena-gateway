@@ -216,7 +216,7 @@ export function PricingPage({ workspace = false }: { workspace?: boolean }) {
                     }}
                   >
                     {selected ? 'Paket dipilih ✓' : `Simulasikan ${p.name.toLowerCase()}`}
-                    <span aria-hidden="true">↗</span>
+                    <span aria-hidden="true">↗︎</span>
                   </button>
                 </article>
               )
@@ -235,7 +235,7 @@ export function PricingPage({ workspace = false }: { workspace?: boolean }) {
           <a href="/#models">Model</a>
           <ThemeToggle />
           <a className="button" href={links.dashboard}>
-            Masuk ↗
+            Masuk ↗︎
           </a>
         </header>
       )}
@@ -250,7 +250,7 @@ export function PricingPage({ workspace = false }: { workspace?: boolean }) {
         </div>
         <div className="pricing-hero__aside">
           <span className="pricing-symbol" aria-hidden="true">
-            ✳
+            ✳︎
           </span>
           <p>
             Dari satu ide sampai proyek berikutnya.
@@ -535,15 +535,15 @@ export function PricingPage({ workspace = false }: { workspace?: boolean }) {
         <footer className="pricing-footer">
           <div>
             <a className="wordmark" href="/">
-              ATHEENA ✳
+              ATHEENA ✳︎
             </a>
-            <p>Tegas berpikir. Bijak bertindak.</p>
+            <p>Satu API. Banyak kemungkinan.</p>
           </div>
           <nav aria-label="Navigasi footer">
             <a href="/#filosofi">Filosofi</a>
             <a href="/#models">Model</a>
             <a href="/#mulai">Integrasi</a>
-            <a href={links.dashboard}>Portal ↗</a>
+            <a href={links.dashboard}>Portal ↗︎</a>
           </nav>
           <small>© 2026 ATHEENA · Independent AI gateway</small>
         </footer>

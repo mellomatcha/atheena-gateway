@@ -3,9 +3,10 @@
 import uuid
 from datetime import datetime
 from typing import Literal
+from urllib.parse import quote
 
 from fastapi import APIRouter, Query, Request
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -86,3 +87,45 @@ async def topup_info(request: Request, user: CurrentUser) -> TopupInfo:
         qris_image_path=settings.topup_qris_path,
         payments_enabled=settings.topup_enabled,
     )
+
+
+class TopupQuoteIn(BaseModel):
+    amount_idr: int = Field(strict=True, ge=1000, le=100_000_000)
+    method: Literal[
+        "BCA",
+        "Mandiri",
+        "BRI",
+        "BNI",
+        "BSI",
+        "Bank lainnya",
+        "DANA",
+        "GoPay",
+        "OVO",
+        "ShopeePay",
+        "LinkAja",
+        "E-wallet lainnya",
+    ]
+
+
+@router.post("/topup/quote")
+async def topup_quote(body: TopupQuoteIn, user: CurrentUser) -> dict[str, object]:
+    """Prepare a manual request. Never create a payment or credit the ledger."""
+    amount = f"Rp{body.amount_idr:,}".replace(",", ".")
+    message = "\n".join(
+        [
+            "Halo admin ATHEENA, saya ingin top-up saldo.",
+            f"Username: {user.username or user.display_name}",
+            f"Email akun: {user.email}",
+            f"Nominal: {amount}",
+            f"Metode yang ingin saya gunakan: {body.method}",
+            "Mohon kirim instruksi pembayaran. Terima kasih.",
+        ]
+    )
+    return {
+        "amount_idr": body.amount_idr,
+        "balance_after_idr": user.balance_idr + body.amount_idr,
+        "method": body.method,
+        "message": message,
+        "whatsapp_url": "https://wa.me/6282312202002?text=" + quote(message, safe=""),
+        "status": "awaiting_contact",
+    }

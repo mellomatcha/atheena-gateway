@@ -66,7 +66,7 @@ test('production dashboard sends admins to the separate console', () => {
     </MemoryRouter>,
   )
   expect(screen.getByRole('link', { name: 'API key' })).toBeTruthy()
-  expect(screen.getByRole('link', { name: 'Console admin ↗' }).getAttribute('href')).toContain(
+  expect(screen.getByRole('link', { name: 'Console admin ↗︎' }).getAttribute('href')).toContain(
     'console.atheena.online',
   )
   expect(screen.queryByRole('link', { name: 'Pengguna' })).toBeNull()
@@ -87,7 +87,7 @@ test('console navigation contains administration and a return to dashboard', () 
     </MemoryRouter>,
   )
   expect(screen.getByRole('link', { name: 'Pengguna' })).toBeTruthy()
-  expect(screen.getByRole('link', { name: 'Dashboard pengguna ↗' })).toBeTruthy()
+  expect(screen.getByRole('link', { name: 'Dashboard pengguna ↗︎' })).toBeTruthy()
   expect(screen.queryByRole('link', { name: 'API key' })).toBeNull()
 })
 
@@ -180,27 +180,22 @@ test('API key is shown once, can be dismissed, and is never put into local stora
   expect(storage).not.toHaveBeenCalled()
 })
 
-test('unconfigured payments do not display the sample QRIS or payment action', async () => {
-  vi.stubGlobal(
-    'fetch',
-    vi.fn((url: string) =>
-      url.endsWith('/topup-info')
-        ? json({
-            payments_enabled: false,
-            qris_image_path: '/assets/qris.png',
-            whatsapp_number: '0',
-          })
-        : json({ items: [], page: 1, page_size: 50, total: 0 }),
-    ),
-  )
-  render(
-    <SessionContext value={{ state: { status: 'ready', me }, refresh: async () => {} }}>
-      <TopUpPage />
-    </SessionContext>,
-  )
-  await screen.findByText('Pembayaran belum diaktifkan. Hubungi admin untuk informasi saldo.')
-  expect(screen.queryByRole('img', { name: /QRIS/ })).toBeNull()
-  expect(screen.queryByRole('link', { name: 'Konfirmasi via WhatsApp' })).toBeNull()
+test('manual topup prepares a WhatsApp handoff and invalidates stale quotes', async () => {
+  const fetcher = vi.fn((url: string) => url.endsWith('/topup/quote')
+    ? json({whatsapp_url: 'https://wa.me/6282312202002?text=test', message:'Nominal: Rp50.000; Metode: DANA'})
+    : json({items: [], page:1, page_size:50, total:0}))
+  vi.stubGlobal('fetch', fetcher)
+  render(<SessionContext value={{state:{status:'ready',me},refresh:async()=>{}}}><TopUpPage /></SessionContext>)
+  const button = screen.getByRole('button',{name:'Siapkan pesan WhatsApp'}) as HTMLButtonElement
+  expect(button.disabled).toBe(true)
+  fireEvent.click(screen.getByRole('button',{name:'Rp 50.000'}))
+  fireEvent.change(screen.getByLabelText('Bayar lewat'),{target:{value:'DANA'}})
+  fireEvent.click(button)
+  expect((await screen.findByRole('link',{name:'Lanjut ke WhatsApp'})).getAttribute('href')).toContain('6282312202002')
+  expect(fetcher).toHaveBeenCalledWith('/app/api/topup/quote',expect.objectContaining({body:JSON.stringify({amount_idr:50000,method:'DANA'})}))
+  fireEvent.change(screen.getByLabelText('Bayar lewat'),{target:{value:'BCA'}})
+  expect(screen.queryByRole('link',{name:'Lanjut ke WhatsApp'})).toBeNull()
+  expect(screen.queryByRole('img',{name:/QRIS/})).toBeNull()
 })
 
 test.each(['Google Person', ''])(
@@ -228,12 +223,12 @@ test.each(['Google Person', ''])(
     const username = screen.getByLabelText('Username publik') as HTMLInputElement
     expect(username.value).toBe('')
     expect(screen.queryByLabelText('Nama key')).toBeNull()
-    expect(screen.getByRole('button', { name: 'Buka workspace ↗' }).hasAttribute('disabled')).toBe(
+    expect(screen.getByRole('button', { name: 'Buka workspace ↗︎' }).hasAttribute('disabled')).toBe(
       true,
     )
     fireEvent.change(username, { target: { value: 'new_member' } })
     expect(screen.queryByLabelText('Nama lengkap')).toBeNull()
-    fireEvent.click(screen.getByRole('button', { name: 'Buka workspace ↗' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Buka workspace ↗︎' }))
     await screen.findByLabelText('Nama key')
     const patch = fetcher.mock.calls.find(([, options]) => options?.method === 'PATCH')!
     expect(JSON.parse(patch[1]!.body as string)).toEqual({

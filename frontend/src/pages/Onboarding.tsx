@@ -34,7 +34,7 @@ export function OnboardingPage() {
     <main className="onboarding">
       <header className="section__head">
         <a className="wordmark" href="https://atheena.online">
-          ATHEENA ✳
+          ATHEENA ✳︎
         </a>
         <ThemeToggle />
       </header>
@@ -72,7 +72,7 @@ export function OnboardingPage() {
             </p>
           )}
           <button type="submit" className="button button--primary" disabled={!valid || saving}>
-            {saving ? 'Menyimpan…' : 'Buka workspace ↗'}
+            {saving ? 'Menyimpan…' : 'Buka workspace ↗︎'}
           </button>
         </form>
       </section>

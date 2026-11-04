@@ -1,122 +1,152 @@
 import { useState } from 'react'
 import { api, type LedgerPage } from '../api'
 import { LedgerTable } from '../components/LedgerTable'
-import { formatNumber, parseDigits } from '../format'
+import { formatIDR, formatNumber, parseDigits } from '../format'
 import { useMe } from '../session-context'
 import { useAsync } from '../useAsync'
-import { whatsappLink } from '../whatsapp'
-
-interface TopupInfo {
-  whatsapp_number: string
-  qris_image_path: string
-  payments_enabled: boolean
-}
 
 const QUICK_AMOUNTS = [50_000, 100_000, 250_000, 500_000]
 
 export function TopUpPage() {
   const { me } = useMe()
   const [amount, setAmount] = useState(0)
-  const [qrisMissing, setQrisMissing] = useState(false)
+  const [method, setMethod] = useState('BCA')
+  const [quote, setQuote] = useState<{ whatsapp_url: string; message: string } | null>(null)
+  const [error, setError] = useState('')
+  const [busy, setBusy] = useState(false)
+  async function prepare() {
+    setBusy(true)
+    setError('')
+    setQuote(null)
+    try {
+      setQuote(await api('/topup/quote', { method: 'POST', body: { amount_idr: amount, method } }))
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Coba lagi sebentar.')
+    } finally {
+      setBusy(false)
+    }
+  }
   const [page, setPage] = useState(1)
   const [kind, setKind] = useState<'all' | 'credits'>('all')
 
-  const info = useAsync('topup-info', () => api<TopupInfo>('/topup-info'))
   const ledger = useAsync(`ledger?page=${page}&kind=${kind}`, () =>
     api<LedgerPage>('/ledger', { query: { page, kind } }),
   )
-
-  const link = info.data
-    ? whatsappLink(info.data.whatsapp_number, me.display_name, me.email, amount)
-    : undefined
 
   return (
     <div className="page">
       <header className="page__head">
         <h1>Top-up saldo</h1>
-        <p className="muted">Lihat riwayat saldo dan informasi pembayaran workspace.</p>
+        <p className="muted">
+          Pilih nominal dan metode pembayaran, lalu hubungi admin lewat WhatsApp.
+        </p>
       </header>
 
-      {!info.data?.payments_enabled && (
-        <p className="notice">Pembayaran belum diaktifkan. Hubungi admin untuk informasi saldo.</p>
-      )}
-      {info.data?.payments_enabled && (
-        <section className="topup" aria-label="Cara top-up">
-          <figure className="topup__qris">
-            {qrisMissing || !info.data ? (
-              <div className="topup__qris-missing muted">
-                {info.error ? info.error.message : 'Gambar QRIS belum tersedia. Hubungi admin.'}
-              </div>
-            ) : (
-              <img
-                src={info.data.qris_image_path}
-                alt="Kode QRIS untuk pembayaran top-up Atheena"
-                onError={() => setQrisMissing(true)}
-              />
-            )}
-          </figure>
-
-          <ol className="steps">
-            <li className="step">
-              <h2>Bayar lewat QRIS</h2>
-              <p className="muted">
-                Pindai kode dengan aplikasi bank atau e-wallet, lalu bayar nominal yang Anda
-                inginkan. Simpan bukti pembayarannya.
-              </p>
-            </li>
-            <li className="step">
-              <h2>Tulis nominal yang dibayar</h2>
-              <label className="field">
-                <span className="field__label">Nominal (Rupiah)</span>
-                <input
-                  className="input input--amount"
-                  inputMode="numeric"
-                  autoComplete="off"
-                  placeholder="0"
-                  value={amount ? formatNumber(amount) : ''}
-                  onChange={(event) => setAmount(parseDigits(event.target.value))}
-                />
-              </label>
-              <div className="chips" role="group" aria-label="Nominal cepat">
-                {QUICK_AMOUNTS.map((value) => (
-                  <button
-                    key={value}
-                    type="button"
-                    className="chip"
-                    onClick={() => setAmount(value)}
-                  >
-                    {formatNumber(value)}
-                  </button>
+      <section className="topup-manual" aria-label="Kalkulator top-up">
+        <div>
+          <h2>Isi saldo sesuai kebutuhan</h2>
+          <label className="field">
+            <span className="field__label">Nominal top-up (Rupiah)</span>
+            <input
+              className="input"
+              inputMode="numeric"
+              autoComplete="off"
+              placeholder="50.000"
+              value={amount ? formatNumber(amount) : ''}
+              onChange={(e) => {
+                setAmount(parseDigits(e.target.value))
+                setQuote(null)
+              }}
+            />
+          </label>
+          <div className="chips" role="group" aria-label="Nominal cepat">
+            {QUICK_AMOUNTS.map((value) => (
+              <button
+                className="chip"
+                key={value}
+                onClick={() => {
+                  setAmount(value)
+                  setQuote(null)
+                }}
+              >
+                {formatIDR(value)}
+              </button>
+            ))}
+          </div>
+          <label className="field">
+            <span className="field__label">Bayar lewat</span>
+            <select
+              className="input"
+              value={method}
+              onChange={(e) => {
+                setMethod(e.target.value)
+                setQuote(null)
+              }}
+            >
+              <optgroup label="Transfer bank">
+                {['BCA', 'Mandiri', 'BRI', 'BNI', 'BSI', 'Bank lainnya'].map((m) => (
+                  <option key={m}>{m}</option>
                 ))}
-              </div>
-            </li>
-            <li className="step">
-              <h2>Kirim bukti ke admin</h2>
+              </optgroup>
+              <optgroup label="E-wallet">
+                {['DANA', 'GoPay', 'OVO', 'ShopeePay', 'LinkAja', 'E-wallet lainnya'].map((m) => (
+                  <option key={m}>{m}</option>
+                ))}
+              </optgroup>
+            </select>
+          </label>
+          <p className="muted">
+            Pilih metode yang ingin dipakai. Admin akan mengirim detail tujuan pembayaran lewat
+            WhatsApp.
+          </p>
+        </div>
+        <div className="topup-summary">
+          <h2>Ringkasan top-up</h2>
+          <p>
+            Saldo saat ini <strong className="money">{formatIDR(me.balance_idr)}</strong>
+          </p>
+          <p>
+            Nominal top-up <strong className="money">{formatIDR(amount)}</strong>
+          </p>
+          <p>
+            Perkiraan saldo setelah konfirmasi{' '}
+            <strong className="money">{formatIDR(me.balance_idr + amount)}</strong>
+          </p>
+          <p className="muted">
+            Minimal Rp1.000, maksimal Rp100.000.000. Saldo masuk setelah pembayaran diverifikasi
+            admin.
+          </p>
+          <button
+            className="button button--primary"
+            disabled={busy || amount < 1000 || amount > 100000000}
+            onClick={prepare}
+          >
+            {busy ? 'Menyiapkan…' : 'Siapkan pesan WhatsApp'}
+          </button>
+          {error && (
+            <p role="alert" className="notice notice--error">
+              {error}
+            </p>
+          )}
+          {quote && (
+            <div>
+              <pre className="topup-message">{quote.message}</pre>
+              <a
+                className="button button--primary"
+                href={quote.whatsapp_url}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                Lanjut ke WhatsApp
+              </a>
               <p className="muted">
-                WhatsApp terbuka dengan pesan berisi nama, email, dan nominal Anda. Lampirkan bukti
-                pembayaran sebelum mengirim.
+                Pesan berisi username, email akun, nominal, dan metode pilihanmu. Periksa lalu kirim
+                di WhatsApp.
               </p>
-              <p>
-                <a
-                  className="button button--primary"
-                  href={amount > 0 && link ? link : undefined}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  aria-disabled={amount <= 0 || !link}
-                  onClick={(event) => {
-                    if (amount <= 0 || !link) event.preventDefault()
-                  }}
-                >
-                  Konfirmasi via WhatsApp
-                </a>
-              </p>
-              {amount <= 0 && (
-                <p className="field__label">Isi nominal dulu untuk mengaktifkan tombol.</p>
-              )}
-            </li>
-          </ol>
-        </section>
-      )}
+            </div>
+          )}
+        </div>
+      </section>
 
       <section className="section" aria-labelledby="riwayat">
         <div className="section__head">

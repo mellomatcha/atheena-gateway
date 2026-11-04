@@ -15,7 +15,7 @@ export function PendingPage() {
   }
   return (
     <main className="status-page">
-      <span className="wordmark">ATHEENA ✳</span>
+      <span className="wordmark">ATHEENA ✳︎</span>
       <ThemeToggle />
       <h1>Menunggu aktivasi admin.</h1>
       <p className="muted">
@@ -27,7 +27,7 @@ export function PendingPage() {
           {busy ? 'Memeriksa…' : 'Periksa status aktivasi'}
         </button>
       </p>
-      <a href="https://atheena.online/pricing">Lihat pilihan paket ↗</a>
+      <a href="https://atheena.online/pricing">Lihat pilihan paket ↗︎</a>
     </main>
   )
 }

@@ -43,9 +43,9 @@ export function Shell() {
               <NavLink to="/app/profil">Pengaturan</NavLink>
             </>
           )}
-          {consoleOnly && <a href={links.dashboard}>Dashboard pengguna ↗</a>}
+          {consoleOnly && <a href={links.dashboard}>Dashboard pengguna ↗︎</a>}
           {me.role === 'admin' && surface === 'dashboard' && (
-            <a href={links.console}>Console admin ↗</a>
+            <a href={links.console}>Console admin ↗︎</a>
           )}
           {me.role === 'admin' && surface !== 'dashboard' && (
             <>
@@ -81,7 +81,7 @@ export function Shell() {
         <Outlet />
         <footer className="workspace-footer">
           <span>ATHEENA © 2026 · Kecerdasan dengan arah.</span>
-          <a href={links.pricing}>Paket & model ↗</a>
+          <a href={links.pricing}>Paket & model ↗︎</a>
         </footer>
       </main>
     </div>
